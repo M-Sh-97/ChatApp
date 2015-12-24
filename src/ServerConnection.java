@@ -2,6 +2,9 @@ import java.sql.Connection;
 import java.sql.*;
 import java.util.*;
 
+/**
+ * @author dimalit
+ */
 public class ServerConnection {
 
   private String serverAddress;

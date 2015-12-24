@@ -6,7 +6,6 @@ import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 /**
- *
  * @author M-Sh-97
  */
 class Connection {
