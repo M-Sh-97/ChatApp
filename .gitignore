@@ -17,3 +17,6 @@ build.xml
 manifest.mf
 .gitignore
 *.iml
+src/META-INF
+.idea
+out
