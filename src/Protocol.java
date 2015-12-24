@@ -10,7 +10,7 @@ interface Protocol {
                         version = "2015",
                         programName = "CHATAPP",
 			serverAddress = "jdbc:mysql://files.litvinov.in.ua/chatapp_server?characterEncoding=utf-8&useUnicode=true",
-			contactFileName = "friendList.chat",
+			contactFileName = "'s contacts.dat",
   			acceptionCommandPhrase = "ACCEPTED",
   			rejectionCommandPhrase = "REJECTED",
 	    		disconnectionCommandPhrase = "DISCONNECT",
