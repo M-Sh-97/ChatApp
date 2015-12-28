@@ -141,8 +141,8 @@ public class Application {
     };
     
     Vector<String> header = new Vector<String>(2);
-    header.add("Nick");
-    header.add("IP");
+    header.add("Пользователь");
+    header.add("IP-адрес");
     contactModel = new DefaultTableModel(header, 0);
     
     messageContainer = new HistoryModel();
