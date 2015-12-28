@@ -62,6 +62,21 @@ class MainForm extends JFrame {
 
     messageHistory.setAutoscrolls(true);
     messageContainer = logicModel.getMessageHistoryModel();
+    
+    buttonChangeLocalNick.setMnemonic(KeyEvent.VK_J);
+    buttonChangeLocalNick.setDisplayedMnemonicIndex(1);
+    logOutButton.setMnemonic(KeyEvent.VK_S);
+    logOutButton.setDisplayedMnemonicIndex(1);
+    connect.setMnemonic(KeyEvent.VK_L);
+    connect.setDisplayedMnemonicIndex(2);
+    disconnect.setMnemonic(KeyEvent.VK_N);
+    disconnect.setDisplayedMnemonicIndex(1);
+    sendButton.setMnemonic(KeyEvent.VK_G);
+    sendButton.setDisplayedMnemonicIndex(2);
+    buttonAddFriends.setMnemonic(KeyEvent.VK_COMMA);
+    buttonAddFriends.setDisplayedMnemonicIndex(2);
+    buttonRemoveFriends.setMnemonic(KeyEvent.VK_H);
+    buttonRemoveFriends.setDisplayedMnemonicIndex(2);
 
     historyViewObserver = new Observer() {
       @Override
@@ -69,7 +84,7 @@ class MainForm extends JFrame {
 	if (((Vector<String>) arg).isEmpty()) {
 	  messageHistory.setText("");
 	} else {
-	  if (!messageHistory.getText().isEmpty()) {
+	  if (! messageHistory.getText().isEmpty()) {
 	    messageHistory.append(Protocol.endOfLine);
 	  }
 	  HistoryModel.Message msgData = messageContainer.getMessage(messageContainer.getSize() - 1);
@@ -283,13 +298,14 @@ class MainForm extends JFrame {
 
   public void blockDialogComponents(boolean blockingFlag) {
     disconnect.setEnabled(! blockingFlag);
-    connect.setEnabled(blockingFlag);
     myText.setEnabled(! blockingFlag);
     sendButton.setEnabled(! blockingFlag);
     if (! blockingFlag) {
       messageContainer.clear();
     }
     messageHistory.setEnabled(! blockingFlag);
+    logOutButton.setEnabled(blockingFlag);
+    connect.setEnabled(blockingFlag);
   }
 
   public void blockLocalUserInfo(boolean blockingFlag) {
