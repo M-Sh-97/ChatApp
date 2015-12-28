@@ -124,7 +124,7 @@ public class Application {
       public void update(Observable o, Object arg) {
 	if (o instanceof CallListenerThread)
 	  try {
-	    if (status == Status.OK) {
+	    if (status == Status.OK || ((status == Status.REQUEST_FOR_CONNECT) && (((InetSocketAddress) callListener.getRemoteAddress()).getAddress().equals(((InetSocketAddress) caller.getRemoteAddress()).getAddress())))) {
 	      incomingConnection = ((Connection) arg);
 	      currentSuccessConnection = ConnectionStatus.AS_SERVER;
 	      status = Status.CLIENT_CONNECTED;
@@ -192,7 +192,9 @@ public class Application {
   }
   
   public void startListeningForCalls() {
-    contactDataServer.goOnline(Protocol.port);
+    if (contactDataServer.isConnected())
+      if (! contactDataServer.isNickOnline(localNick))
+	contactDataServer.goOnline(Protocol.port);
     try {
       callListener = new CallListener(localNick);
       callListenerThread = new CallListenerThread(callListener);
