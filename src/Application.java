@@ -355,6 +355,7 @@ public class Application {
     SwingUtilities.invokeLater(new Runnable() {
       public void run() {
 	chatApp.getForm().setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+	chatApp.getForm().setLocationByPlatform(true);
 	chatApp.getForm().setVisible(true);
       }
     });

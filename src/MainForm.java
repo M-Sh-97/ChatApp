@@ -43,7 +43,7 @@ class MainForm extends JFrame {
     super();
     logicModel = logic;
     setContentPane(rootPanel);
-    setSize(700, 500);
+    setSize(750, 500);
     setTitle(Protocol.programName + " " + Protocol.version);
 
     connect.setEnabled(false);
@@ -140,8 +140,8 @@ class MainForm extends JFrame {
       @Override
       public void windowClosing(WindowEvent e) {
 	if (! logicModel.isBusy()) {
-	  Object[] option = {"Yes", "No"};
-	  int n = JOptionPane.showOptionDialog(e.getComponent(), "Do you really want to exit?", "Close window?", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
+	  Object[] option = {"Да", "Нет"};
+	  int n = JOptionPane.showOptionDialog(e.getComponent(), "Вы действительно хотите выйти?", "Выход из программы", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
 	  if (n == 0) {
 	    if (logicModel.getLocalNick() != null)
 	      logOutButton.doClick();
@@ -237,8 +237,8 @@ class MainForm extends JFrame {
   }
 
   public void showIncomingCallDialog(String nick, String IP) {
-    Object[] option = {"Connect", "Disconnect"};
-    int n = JOptionPane.showOptionDialog(this, "User " + nick + " from address " + IP + " wants to chat with you", "New connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
+    Object[] option = {"Принять", "Отклонить"};
+    int n = JOptionPane.showOptionDialog(this, "Пользователь " + nick + " с адреса " + IP + " желает переписываться с Вами.", "Входящий запрос", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
     if (n == 0) {
       logicModel.acceptIncomingCall();
       textFieldNick.setText(nick);
@@ -252,13 +252,13 @@ class MainForm extends JFrame {
 
   public void showCallFinishDialog() {
     blockDialogComponents(true);
-    JOptionPane.showMessageDialog(this, "Remote user disconnected", "Finished connection", JOptionPane.INFORMATION_MESSAGE);
+    JOptionPane.showMessageDialog(this, "Удалённый пользователь отсоединился", "Конец переписки", JOptionPane.INFORMATION_MESSAGE);
     blockRemoteUserInfo(false);
   }
 
   public void showCallRetryDialog() {
-    Object[] option = {"Yes", "No"};
-    int n = JOptionPane.showOptionDialog(this, "Remote user is busy. Try again?", "Busy", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
+    Object[] option = {"Повторить звонок", "Вернуться"};
+    int n = JOptionPane.showOptionDialog(this, "Удалённый пользователь занят. Попробовать ещё раз?", "Занято", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
     if (n == 0) {
       connect.doClick();
     } else {
@@ -267,8 +267,8 @@ class MainForm extends JFrame {
   }
 
   public void showRecallDialog() {
-    Object[] option = {"Recall", "Cancel"};
-    int n = JOptionPane.showOptionDialog(this, "Remote user cancelled the connection", "Cancelled connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
+    Object[] option = {"Перезвонить", "Вернуться"};
+    int n = JOptionPane.showOptionDialog(this, "Удалённый пользователь отклонил Ваш запрос", "Повтор исходящего запроса", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
     if (n == 0) {
       connect.doClick();
     } else {
@@ -277,19 +277,19 @@ class MainForm extends JFrame {
   }
 
   public void showNoConnectionDialog() {
-    JOptionPane.showMessageDialog(this, "Cannot connect", "Unsuccessful connection", JOptionPane.INFORMATION_MESSAGE);
+    JOptionPane.showMessageDialog(this, "Невозможно подсоединиться", "Неуспешное соединение", JOptionPane.INFORMATION_MESSAGE);
     blockRemoteUserInfo(false);
   }
 
   public void blockDialogComponents(boolean blockingFlag) {
-    disconnect.setEnabled(!blockingFlag);
+    disconnect.setEnabled(! blockingFlag);
     connect.setEnabled(blockingFlag);
     myText.setEnabled(! blockingFlag);
     sendButton.setEnabled(! blockingFlag);
-    if (!blockingFlag) {
+    if (! blockingFlag) {
       messageContainer.clear();
     }
-    messageHistory.setEnabled(!blockingFlag);
+    messageHistory.setEnabled(! blockingFlag);
   }
 
   public void blockLocalUserInfo(boolean blockingFlag) {
