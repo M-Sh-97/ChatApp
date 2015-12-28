@@ -277,7 +277,7 @@ public class Application {
       if (fln.get(lni).contains(newNick) && fln.get(lni).contains(newIP))
 	break;
     }
-    if (lni < fln.size())
+    if (lni == fln.size())
       contactModel.addRow(nc);
   }
   
