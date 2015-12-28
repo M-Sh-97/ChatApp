@@ -39,13 +39,13 @@ public class Application {
   public Application() {
     currentSuccessConnection = ConnectionStatus.AS_NULL;
     status = Status.OK;
-    
+
     try {
       Class.forName("com.mysql.jdbc.Driver");
     } catch (ClassNotFoundException e1) {
       e1.printStackTrace();
     }
-    
+
     outcomingConnectionObserver = new Observer() {
       @Override
       public void update(Observable o, Object arg) {
@@ -90,7 +90,7 @@ public class Application {
 	});
       }
     };
-    
+
     incomingConnectionObserver = new Observer() {
       @Override
       public void update(Observable o, Object arg) {
@@ -118,7 +118,7 @@ public class Application {
 	});
       }
     };
-    
+
     incomingCallObserver = new Observer() {
       @Override
       public void update(Observable o, Object arg) {
@@ -139,23 +139,23 @@ public class Application {
 	  }
       }
     };
-    
+
     Vector<String> header = new Vector<String>(2);
     header.add("Пользователь");
     header.add("IP-адрес");
     contactModel = new DefaultTableModel(header, 0);
-    
+
     messageContainer = new HistoryModel();
-    
+
     contactDataServer = new ServerConnection(Protocol.serverAddress);
-    
+
     form = new MainForm(this);
   }
-  
+
   public String getLocalNick() {
     return localNick;
   }
-  
+
   public void acceptIncomingCall() {
     try {
       incomingConnection.accept();
@@ -164,7 +164,7 @@ public class Application {
       e1.printStackTrace();
     }
   }
-  
+
   public void rejectIncomingCall() {
     try {
       incomingConnection.reject();
@@ -174,7 +174,7 @@ public class Application {
       e1.printStackTrace();
     }
   }
-  
+
   public void logIn(String newNick) {
     if (newNick.isEmpty())
       localNick = Protocol.defaultLocalNick;
@@ -190,7 +190,7 @@ public class Application {
       contactDataServer.disconnect();
     localNick = null;
   }
-  
+
   public void startListeningForCalls() {
     if (contactDataServer.isConnected())
       if (! contactDataServer.isNickOnline(localNick))
@@ -205,14 +205,14 @@ public class Application {
       e1.printStackTrace();
     }
   }
-  
+
   public void finishListeningForCalls() {
     if (contactDataServer.isConnected())
       if (contactDataServer.isNickOnline(localNick))
 	contactDataServer.goOffline();
     callListenerThread.stop();
   }
-  
+
   public void loadContactsFromServer() {
     if (contactDataServer.isConnected()) {
       String[] nicknames = contactDataServer.getAllNicks();
@@ -233,7 +233,7 @@ public class Application {
     }
 //    else throw new SQLException();
   }
-  
+
   public void finishCall() {
     try {
       //System.out.println(currentSuccessConnection);
@@ -253,12 +253,12 @@ public class Application {
       e1.printStackTrace();
     }
   }
-  
+
   public void sendMessage(String text) {
     try {
       if (currentSuccessConnection == ConnectionStatus.AS_SERVER) {
 	incomingConnection.sendMessage(text);
-      } else 
+      } else
 	if (currentSuccessConnection == ConnectionStatus.AS_CLIENT) {
 	  outcomingConnection.sendMessage(text);
       }
@@ -266,7 +266,7 @@ public class Application {
       e1.printStackTrace();
     }
   }
-  
+
   public void addContact(String newNick, String newIP) {
     Vector<String> nc = new Vector<String>(2);
     nc.add(newNick);
@@ -280,13 +280,19 @@ public class Application {
     if (lni == fln.size())
       contactModel.addRow(nc);
   }
-  
+
   public void removeContact(int pos) {
     if (pos >= 0)
       contactModel.removeRow(pos);
   }
+
+  public void clearContacts() {
+    while (contactModel.getRowCount() > 0)
+      contactModel.removeRow(0);
+  }
   
   public void loadContactsFromFile() {
+    clearContacts();
     try (BufferedReader bufferedReader = new BufferedReader(new FileReader(localNick + Protocol.contactFileName))) {
       while (bufferedReader.ready()) {
 	Vector<String> tmp = new Vector<String>();
