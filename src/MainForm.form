@@ -110,7 +110,7 @@
             <constraints/>
             <properties>
               <editable value="false"/>
-              <font name="Gautami" size="18" style="0"/>
+              <font name="Roboto" size="18" style="0"/>
               <lineWrap value="true"/>
               <rows value="2"/>
             </properties>
