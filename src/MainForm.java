@@ -2,8 +2,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import java.util.Observable;
@@ -26,15 +26,15 @@ class MainForm extends JFrame {
 		  disconnect,
 		  buttonAddFriends,
 		  buttonRemoveFriends,
-		  buttonChangeLocalNick,
-		  sendButton;
+		  logInButton,
+		  sendButton,
+		  logOutButton;
   private JTextField textFieldIp,
-		     textFieldNick,
-		     textFieldLocalNick,
-		     myText;
+		     textFieldRemoteNick,
+		     textFieldLocalNick;
+  private JTextArea messageTypingSpace,
+		    messageHistory;
   private JTable tableFriends;
-  private JTextArea messageHistory;
-  private JButton logOutButton;
   private HistoryModel messageContainer;
   private final Observer historyViewObserver;
   private Application logicModel;
@@ -46,25 +46,12 @@ class MainForm extends JFrame {
     setSize(750, 500);
     setTitle(Protocol.programName + " " + Protocol.version);
 
-    connect.setEnabled(false);
-    disconnect.setEnabled(false);
-    textFieldIp.setEnabled(false);
-    textFieldNick.setEnabled(false);
-    tableFriends.setEnabled(false);
-    buttonAddFriends.setEnabled(false);
-    buttonRemoveFriends.setEnabled(false);
-    myText.setEnabled(false);
-    sendButton.setEnabled(false);
-    logOutButton.setEnabled(false);
-
     tableFriends.setModel(logicModel.getContactModel());
-    tableFriends.setAutoscrolls(true);
 
-    messageHistory.setAutoscrolls(true);
     messageContainer = logicModel.getMessageHistoryModel();
     
-    buttonChangeLocalNick.setMnemonic(KeyEvent.VK_J);
-    buttonChangeLocalNick.setDisplayedMnemonicIndex(1);
+    logInButton.setMnemonic(KeyEvent.VK_J);
+    logInButton.setDisplayedMnemonicIndex(1);
     logOutButton.setMnemonic(KeyEvent.VK_S);
     logOutButton.setDisplayedMnemonicIndex(1);
     connect.setMnemonic(KeyEvent.VK_L);
@@ -82,13 +69,13 @@ class MainForm extends JFrame {
       @Override
       public void update(Observable o, Object arg) {
 	if (((Vector<String>) arg).isEmpty()) {
-	  messageHistory.setText("");
+	  messageHistory.setText(null);
 	} else {
 	  if (! messageHistory.getText().isEmpty()) {
 	    messageHistory.append(Protocol.endOfLine);
 	  }
 	  HistoryModel.Message msgData = messageContainer.getMessage(messageContainer.getSize() - 1);
-	  messageHistory.append(msgData.getNick() + ". " + msgData.getDate().toString() + "." + Protocol.endOfLine + msgData.getText() + Protocol.endOfLine);
+	  messageHistory.append(msgData.getNick() + ". " + logicModel.getDateFormat().format(msgData.getDate()) + "." + Protocol.endOfLine + msgData.getText());
 	}
       }
     };
@@ -107,6 +94,7 @@ class MainForm extends JFrame {
       public void actionPerformed(ActionEvent e) {
 	blockDialogComponents(true);
 	logicModel.finishCall();
+	logicModel.closeConnection();
 	blockRemoteUserInfo(false);
       }
     });
@@ -114,16 +102,16 @@ class MainForm extends JFrame {
     sendButton.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-	String text = myText.getText();
-	if (!text.isEmpty()) {
+	String text = messageTypingSpace.getText();
+	if (! text.isEmpty()) {
 	  logicModel.sendMessage(text);
 	  logicModel.addMessage(logicModel.getLocalNick(), text);
-	  myText.setText("");
+	  messageTypingSpace.setText(null);
 	}
       }
     });
 
-    buttonChangeLocalNick.addActionListener(new ActionListener() {
+    logInButton.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
 	String fln = textFieldLocalNick.getText();
@@ -144,14 +132,12 @@ class MainForm extends JFrame {
 	logicModel.finishListeningForCalls();
 	logicModel.saveContactsToFile();
 	logicModel.logOut();
+	messageHistory.setText(null);
 	blockLocalUserInfo(false);
       }
     });
 
-    this.addWindowListener(new WindowListener() {
-      @Override
-      public void windowOpened(WindowEvent e) {}
-
+    this.addWindowListener(new WindowAdapter() {
       @Override
       public void windowClosing(WindowEvent e) {
 	if (! logicModel.isBusy()) {
@@ -160,33 +146,19 @@ class MainForm extends JFrame {
 	  if (n == 0) {
 	    if (logicModel.getLocalNick() != null)
 	      logOutButton.doClick();
-	    e.getWindow().setVisible(false);
+	    MainForm.this.hide();
+	    MainForm.this.dispose();
 	    System.exit(0);
 	  }
 	}
       }
-
-      @Override
-      public void windowClosed(WindowEvent e) {}
-
-      @Override
-      public void windowIconified(WindowEvent e) {}
-
-      @Override
-      public void windowDeiconified(WindowEvent e) {}
-
-      @Override
-      public void windowActivated(WindowEvent e) {}
-
-      @Override
-      public void windowDeactivated(WindowEvent e) {}
     });
 
     buttonAddFriends.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-	if (!((textFieldIp.getText().isEmpty()) || (textFieldNick.getText().isEmpty()))) {
-	  logicModel.addContact(textFieldNick.getText(), textFieldIp.getText());
+	if (!((textFieldIp.getText().isEmpty()) || (textFieldRemoteNick.getText().isEmpty()))) {
+	  logicModel.addContact(textFieldRemoteNick.getText(), textFieldIp.getText());
 	}
       }
     });
@@ -208,7 +180,7 @@ class MainForm extends JFrame {
 	if (tableFriends.getSelectedRow() > 0) {
 	  String nick = tableFriends.getModel().getValueAt(tableFriends.getSelectedRow(), 0).toString();
 	  String ip = tableFriends.getModel().getValueAt(tableFriends.getSelectedRow(), 1).toString();
-	  textFieldNick.setText(nick);
+	  textFieldRemoteNick.setText(nick);
 	  textFieldIp.setText(ip);
 	}
       }
@@ -217,46 +189,40 @@ class MainForm extends JFrame {
     tableFriends.addKeyListener(new KeyAdapter() {
       @Override
       public void keyPressed(KeyEvent e) {
-	if (e.getKeyCode() == 127) { // "Delete"
+	if (e.getKeyCode() == 127) // "Delete"
 	  buttonRemoveFriends.doClick();
-	}
       }
     });
 
     textFieldLocalNick.addKeyListener(new KeyAdapter() {
       @Override
       public void keyPressed(KeyEvent e) {
-	if (e.getKeyCode() == 10) { // "Enter"
-	  buttonChangeLocalNick.doClick();
-	}
-      }
-    });
-
-    myText.addKeyListener(new KeyAdapter() {
-      @Override
-      public void keyPressed(KeyEvent e) {
-	if (e.getKeyCode() == 10) { // "Enter"
-	  sendButton.doClick();
-	}
+	if (e.getKeyCode() == 10) // "Enter"
+	  logInButton.doClick();
       }
     });
 
     textFieldIp.addKeyListener(new KeyAdapter() {
       @Override
       public void keyPressed(KeyEvent e) {
-	if (e.getKeyCode() == 10) { // "Enter"
+	if (e.getKeyCode() == 10) // "Enter"
 	  connect.doClick();
-	}
+      }
+      
+      @Override
+      public void keyTyped(KeyEvent e) {
+	if (! textFieldRemoteNick.getText().isEmpty())
+	  if (e.getKeyChar() != 10) // "Enter"
+	    textFieldRemoteNick.setText(null);
       }
     });
   }
 
   public void showIncomingCallDialog(String nick, String IP) {
     Object[] option = {"Принять", "Отклонить"};
-    int n = JOptionPane.showOptionDialog(this, "Пользователь " + nick + " с адреса " + IP + " желает переписываться с Вами.", "Входящий запрос", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
-    if (n == 0) {
+    if (JOptionPane.showOptionDialog(this, "Пользователь " + nick + " с адреса " + IP + " желает переписываться с Вами.", "Входящий запрос", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]) == 0) {
       logicModel.acceptIncomingCall();
-      textFieldNick.setText(nick);
+      textFieldRemoteNick.setText(nick);
       textFieldIp.setText(IP);
       blockRemoteUserInfo(true);
       blockDialogComponents(false);
@@ -267,42 +233,29 @@ class MainForm extends JFrame {
 
   public void showCallFinishDialog() {
     blockDialogComponents(true);
-    JOptionPane.showMessageDialog(this, "Удалённый пользователь отсоединился", "Конец переписки", JOptionPane.INFORMATION_MESSAGE);
+    JOptionPane.showMessageDialog(this, "Удалённый пользователь отсоединился.", "Конец переписки", JOptionPane.INFORMATION_MESSAGE);
     blockRemoteUserInfo(false);
   }
 
-  public void showCallRetryDialog() {
-    Object[] option = {"Повторить звонок", "Вернуться"};
-    int n = JOptionPane.showOptionDialog(this, "Удалённый пользователь занят. Попробовать ещё раз?", "Занято", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
-    if (n == 0) {
-      connect.doClick();
-    } else {
-      blockRemoteUserInfo(false);
-    }
+  public void showBusyCalleeDialog() {
+    JOptionPane.showMessageDialog(this, "Удалённый пользователь занят.", "Занято", JOptionPane.INFORMATION_MESSAGE);
+    blockRemoteUserInfo(false);
   }
 
-  public void showRecallDialog() {
-    Object[] option = {"Перезвонить", "Вернуться"};
-    int n = JOptionPane.showOptionDialog(this, "Удалённый пользователь отклонил Ваш запрос", "Повтор исходящего запроса", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
-    if (n == 0) {
-      connect.doClick();
-    } else {
-      blockRemoteUserInfo(false);
-    }
+  public void showRejectedCallDialog() {
+    JOptionPane.showMessageDialog(this, "Удалённый пользователь отклонил Ваш запрос на соединение.", "Отклонённый запрос", JOptionPane.INFORMATION_MESSAGE);
+    blockRemoteUserInfo(false);
   }
 
-  public void showNoConnectionDialog() {
-    JOptionPane.showMessageDialog(this, "Невозможно подсоединиться", "Неуспешное соединение", JOptionPane.INFORMATION_MESSAGE);
+  public void showConnectionFailDialog() {
+    JOptionPane.showMessageDialog(this, "Невозможно подсоединиться.", "Неуспешное соединение", JOptionPane.INFORMATION_MESSAGE);
     blockRemoteUserInfo(false);
   }
 
   public void blockDialogComponents(boolean blockingFlag) {
     disconnect.setEnabled(! blockingFlag);
-    myText.setEnabled(! blockingFlag);
+    messageTypingSpace.setEnabled(! blockingFlag);
     sendButton.setEnabled(! blockingFlag);
-    if (! blockingFlag) {
-      messageContainer.clear();
-    }
     messageHistory.setEnabled(! blockingFlag);
     logOutButton.setEnabled(blockingFlag);
     connect.setEnabled(blockingFlag);
@@ -315,7 +268,7 @@ class MainForm extends JFrame {
     textFieldIp.setEnabled(blockingFlag);
     tableFriends.setEnabled(blockingFlag);
     textFieldLocalNick.setEnabled(! blockingFlag);
-    buttonChangeLocalNick.setEnabled(! blockingFlag);
+    logInButton.setEnabled(! blockingFlag);
     logOutButton.setEnabled(blockingFlag);
   }
 
@@ -324,6 +277,6 @@ class MainForm extends JFrame {
   }
 
   public void showRemoteNick(String nick) {
-    textFieldNick.setText(nick);
+    textFieldRemoteNick.setText(nick);
   }
 }

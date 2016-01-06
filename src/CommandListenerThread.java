@@ -20,8 +20,8 @@ class CommandListenerThread extends Observable implements Runnable {
     return lastCommand;
   }
 
-  public boolean isDisconnected() {
-    return stopped;
+  public boolean isListening() {
+    return ! stopped;
   }
 
   public void start() {
@@ -30,6 +30,11 @@ class CommandListenerThread extends Observable implements Runnable {
 
   public void stop() {
     stopped = true;
+    try {
+      connection.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   public void run() {
@@ -42,7 +47,7 @@ class CommandListenerThread extends Observable implements Runnable {
 	  notifyObservers(checked);
 	}
       } catch (IOException | NoSuchElementException ex) {
-	stopped = true;
+	stop();
       }
     } while (! stopped);
   }

@@ -1,15 +1,17 @@
+import java.awt.EventQueue;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Vector;
 import javax.swing.JFrame;
-import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
@@ -19,72 +21,64 @@ import javax.swing.table.TableModel;
 public class Application {
   private MainForm form;
   private String localNick;
-  private DefaultTableModel contactModel;
+  private final DefaultTableModel contactModel;
   private Connection incomingConnection,
 		     outcomingConnection;
   private Caller caller;
   private CallListener callListener;
   private CallListenerThread callListenerThread;
-  private CommandListenerThread commandListener;
+  private CommandListenerThread outcomingCommandListener,
+				incomingCommandListener;
   private final ServerConnection contactDataServer;
   private static enum Status {BUSY, SERVER_NOT_STARTED, OK, CLIENT_CONNECTED, REQUEST_FOR_CONNECT};
-  private static enum ConnectionStatus {AS_SERVER, AS_CLIENT, AS_NULL};
   private final Observer outcomingConnectionObserver,
 			 incomingConnectionObserver,
 			 incomingCallObserver;
   private final HistoryModel messageContainer;
-  private ConnectionStatus currentSuccessConnection;
   private Status status;
+  private final SimpleDateFormat dateFormatter;
 
   public Application() {
-    currentSuccessConnection = ConnectionStatus.AS_NULL;
     status = Status.OK;
 
     try {
       Class.forName("com.mysql.jdbc.Driver");
-    } catch (ClassNotFoundException e1) {
-      e1.printStackTrace();
+    } catch (ClassNotFoundException e) {
+      e.printStackTrace();
     }
 
     outcomingConnectionObserver = new Observer() {
       @Override
       public void update(Observable o, Object arg) {
-	SwingUtilities.invokeLater(new Runnable() {
+	EventQueue.invokeLater(new Runnable() {
 	  @Override
 	  public void run() {
-	    if (((Command) arg).getType() == Command.CommandType.NICK) {
-		if (o instanceof CommandListenerThread) {
-		  caller.setRemoteNick(((NickCommand) arg).getNick());
-		  form.showRemoteNick(caller.getRemoteNick());
-		  form.blockRemoteUserInfo(true);
-		  try {
-		    if (((NickCommand) arg).getBusyStatus()) {
-		      status = Status.OK;
-		      form.showCallRetryDialog();
-		    } else
-		      outcomingConnection.sendNickHello(localNick);
-		  } catch (IOException e1) {
-		    e1.printStackTrace();
-		  }
+	    if (o instanceof CommandListenerThread) {
+	      if (((Command) arg).getType() == Command.CommandType.NICK) {
+		caller.setRemoteNick(((NickCommand) arg).getNick());
+		form.showRemoteNick(caller.getRemoteNick());
+		form.blockRemoteUserInfo(true);
+		try {
+		  if (((NickCommand) arg).getBusyStatus()) {
+		    closeConnection();
+		    form.showBusyCalleeDialog();
+		  } else
+		    outcomingConnection.sendNickHello(localNick);
+		} catch (IOException e) {
+		  e.printStackTrace();
 		}
-	    } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
-		if (o instanceof CommandListenerThread) {
-		  form.blockDialogComponents(false);
-		}
-	    } else if (((Command) arg).getType() == Command.CommandType.REJECT) {
-		if (o instanceof CommandListenerThread) {
-		  currentSuccessConnection = ConnectionStatus.AS_NULL;
-		  form.showRecallDialog();
-		}
-	    } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
-		if (o instanceof CommandListenerThread) {
-		  addMessage(caller.getRemoteNick(), ((MessageCommand) arg).getMessage());
-		}
-	    } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
-		if (o instanceof CommandListenerThread) {
-		  finishCall();
-		  form.showCallFinishDialog();
-		}
+	      } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
+		messageContainer.clear();
+		form.blockDialogComponents(false);
+	      } else if (((Command) arg).getType() == Command.CommandType.REJECT) {
+		closeConnection();
+		form.showRejectedCallDialog();
+	      } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
+		addMessage(caller.getRemoteNick(), ((MessageCommand) arg).getMessage());
+	      } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
+		closeConnection();
+		form.showCallFinishDialog();
+	      }
 	    }
 	  }
 	});
@@ -94,25 +88,19 @@ public class Application {
     incomingConnectionObserver = new Observer() {
       @Override
       public void update(Observable o, Object arg) {
-	SwingUtilities.invokeLater(new Runnable() {
+	EventQueue.invokeLater(new Runnable() {
 	  @Override
 	  public void run() {
-	    if (((Command) arg).getType() == Command.CommandType.NICK) {
-	      	callListener.setRemoteNick(((NickCommand) arg).getNick());
-		form.showIncomingCallDialog(callListener.getRemoteNick(), ((InetSocketAddress) callListener.getRemoteAddress()).getHostString());
-//	    } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
-//		if (o instanceof CommandListenerThread) {}
-//	    } else if (((Command) arg).getType() == Command.CommandType.REJECT) {
-//		if (o instanceof CommandListenerThread) {}
-	    } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
-		if (o instanceof CommandListenerThread) {
-		  addMessage(callListener.getRemoteNick(), ((MessageCommand) arg).getMessage());
-		}
-	    } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
-		if (o instanceof CommandListenerThread) {
-		  finishCall();
-		  form.showCallFinishDialog();
-		}
+	    if (o instanceof CommandListenerThread) {
+	      if (((Command) arg).getType() == Command.CommandType.NICK) {
+		  callListener.setRemoteNick(((NickCommand) arg).getNick());
+		  form.showIncomingCallDialog(callListener.getRemoteNick(), ((InetSocketAddress) callListener.getRemoteAddress()).getHostString());
+	      } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
+		addMessage(callListener.getRemoteNick(), ((MessageCommand) arg).getMessage());
+	      } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
+		closeConnection();
+		form.showCallFinishDialog();
+	      }
 	    }
 	  }
 	});
@@ -124,57 +112,65 @@ public class Application {
       public void update(Observable o, Object arg) {
 	if (o instanceof CallListenerThread)
 	  try {
-	    if (status == Status.OK || ((status == Status.REQUEST_FOR_CONNECT) && (((InetSocketAddress) callListener.getRemoteAddress()).getAddress().equals(((InetSocketAddress) caller.getRemoteAddress()).getAddress())))) {
+	    if (status == Status.OK || ((status == Status.REQUEST_FOR_CONNECT) && ((InetSocketAddress) callListener.getRemoteAddress()).getAddress().getHostAddress().startsWith("127.0.0."))) {
 	      incomingConnection = ((Connection) arg);
-	      currentSuccessConnection = ConnectionStatus.AS_SERVER;
 	      status = Status.CLIENT_CONNECTED;
-	      commandListener = new CommandListenerThread(incomingConnection);
-	      commandListener.addObserver(incomingConnectionObserver);
-	      commandListener.start();
-	      incomingConnection.sendNickHello(localNick);
+	      incomingCommandListener = new CommandListenerThread(incomingConnection);
+	      incomingCommandListener.addObserver(incomingConnectionObserver);
+	      try {
+		incomingCommandListener.start();
+		incomingConnection.sendNickHello(localNick);
+	      } catch (IllegalThreadStateException ex) {
+		closeConnection();
+	      }
 	    } else
 	      ((Connection) arg).sendNickBusy(localNick);
-	  } catch (IOException e1) {
-	    e1.printStackTrace();
+	  } catch (IOException e) {
+	    e.printStackTrace();
 	  }
       }
     };
 
-    Vector<String> header = new Vector<String>(2);
+    Vector<String> header = new Vector<>(2);
     header.add("Пользователь");
     header.add("IP-адрес");
     contactModel = new DefaultTableModel(header, 0);
 
     messageContainer = new HistoryModel();
+    
+    dateFormatter = new SimpleDateFormat("d.MM.yyyy H:mm:ss");
 
     contactDataServer = new ServerConnection(Protocol.serverAddress);
 
     form = new MainForm(this);
   }
+  
+  public MainForm getForm() {
+    return form;
+  }
+  
+  public TableModel getContactModel() {
+    return contactModel;
+  }
+  
+  
+  public HistoryModel getMessageHistoryModel() {
+    return messageContainer;
+  }
 
   public String getLocalNick() {
     return localNick;
   }
-
-  public void acceptIncomingCall() {
-    try {
-      incomingConnection.accept();
-      status = Status.BUSY;
-    } catch (IOException e1) {
-      e1.printStackTrace();
-    }
+  
+  public DateFormat getDateFormat() {
+    return dateFormatter;
   }
-
-  public void rejectIncomingCall() {
-    try {
-      incomingConnection.reject();
-      currentSuccessConnection = ConnectionStatus.AS_NULL;
-      status = Status.OK;
-    } catch (IOException e1) {
-      e1.printStackTrace();
-    }
+  
+  public boolean isBusy() {
+    return status != Status.OK;
   }
-
+  
+  
   public void logIn(String newNick) {
     if (newNick.isEmpty())
       localNick = Protocol.defaultLocalNick;
@@ -188,9 +184,10 @@ public class Application {
   public void logOut() {
     if (contactDataServer.isConnected())
       contactDataServer.disconnect();
+    messageContainer.clear();
     localNick = null;
   }
-
+  
   public void startListeningForCalls() {
     if (contactDataServer.isConnected())
       if (! contactDataServer.isNickOnline(localNick))
@@ -201,8 +198,8 @@ public class Application {
       callListenerThread.addObserver(incomingCallObserver);
       status = Status.OK;
       callListenerThread.start();
-    } catch (IOException e1) {
-      e1.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
     }
   }
 
@@ -212,13 +209,13 @@ public class Application {
 	contactDataServer.goOffline();
     callListenerThread.stop();
   }
-
+  
   public void loadContactsFromServer() {
     if (contactDataServer.isConnected()) {
       String[] nicknames = contactDataServer.getAllNicks();
       Vector<Vector<String>> fln = (Vector<Vector<String>>) contactModel.getDataVector();
       for (String nick: nicknames) {
-	Vector<String> row = new Vector<String>(2);
+	Vector<String> row = new Vector<>(2);
 	row.add(nick);
 	String nickIP = contactDataServer.getIpForNick(nick);
 	row.add(nickIP);
@@ -231,44 +228,38 @@ public class Application {
 	  contactModel.addRow(row);
       }
     }
-//    else throw new SQLException();
   }
-
-  public void finishCall() {
-    try {
-      //System.out.println(currentSuccessConnection);
-      if (currentSuccessConnection == ConnectionStatus.AS_SERVER) {
-	incomingConnection.disconnect();
-	incomingConnection.close();
-      } else
-	if (currentSuccessConnection == ConnectionStatus.AS_CLIENT) {
-	  outcomingConnection.disconnect();
-	  outcomingConnection.close();
-	}
-      currentSuccessConnection = ConnectionStatus.AS_NULL;
-      commandListener.stop();
-      commandListener.deleteObservers();
-      status = Status.OK;
-    } catch (IOException e1) {
-      e1.printStackTrace();
-    }
-  }
-
-  public void sendMessage(String text) {
-    try {
-      if (currentSuccessConnection == ConnectionStatus.AS_SERVER) {
-	incomingConnection.sendMessage(text);
-      } else
-	if (currentSuccessConnection == ConnectionStatus.AS_CLIENT) {
-	  outcomingConnection.sendMessage(text);
+  
+  public void loadContactsFromFile() {
+    clearContacts();
+    try (BufferedReader bufferedReader = new BufferedReader(new FileReader(localNick + Protocol.contactFileName))) {
+      while (bufferedReader.ready()) {
+	Vector<String> tmp = new Vector<>();
+	String nick = bufferedReader.readLine();
+	String ip = bufferedReader.readLine();
+	tmp.add(nick);
+	tmp.add(ip);
+	contactModel.addRow(tmp);
       }
-    } catch (IOException e1) {
-      e1.printStackTrace();
+    } catch (FileNotFoundException e) {
+    } catch (IOException e) {
+	e.printStackTrace();
     }
   }
-
+  
+  public void saveContactsToFile() {
+    try (FileWriter fileWriter = new FileWriter(localNick + Protocol.contactFileName)) {
+      for (int i = 0; i < contactModel.getRowCount(); i++) {
+	fileWriter.write(contactModel.getValueAt(i, 0).toString() + Protocol.endOfLine);
+	fileWriter.write(contactModel.getValueAt(i, 1).toString() + Protocol.endOfLine);
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+  
   public void addContact(String newNick, String newIP) {
-    Vector<String> nc = new Vector<String>(2);
+    Vector<String> nc = new Vector<>(2);
     nc.add(newNick);
     nc.add(newIP);
     Vector<Vector<String>> fln = (Vector<Vector<String>>) contactModel.getDataVector();
@@ -291,80 +282,93 @@ public class Application {
       contactModel.removeRow(0);
   }
   
-  public void loadContactsFromFile() {
-    clearContacts();
-    try (BufferedReader bufferedReader = new BufferedReader(new FileReader(localNick + Protocol.contactFileName))) {
-      while (bufferedReader.ready()) {
-	Vector<String> tmp = new Vector<String>();
-	String nick = bufferedReader.readLine();
-	String ip = bufferedReader.readLine();
-	tmp.add(nick);
-	tmp.add(ip);
-	contactModel.addRow(tmp);
-      }
-    } catch (FileNotFoundException e) {
-    } catch (IOException e) {
-	e.printStackTrace();
-    }
-  }
-  
-  public void saveContactsToFile() {
-    try (FileWriter fileWriter = new FileWriter(localNick + Protocol.contactFileName)) {
-      for (int i = 0; i < contactModel.getRowCount(); i++) {
-	fileWriter.write(contactModel.getValueAt(i, 0).toString() + Protocol.endOfLine);
-	fileWriter.write(contactModel.getValueAt(i, 1).toString() + Protocol.endOfLine);
-      }
-    } catch (IOException e1) {
-      e1.printStackTrace();
-    }
-  }
-  
   public void makeOutcomingCall(String remoteIP) {
     caller = new Caller(localNick, remoteIP);
     try {
       if (status == Status.OK) {
 	outcomingConnection = caller.call();
-	currentSuccessConnection = ConnectionStatus.AS_CLIENT;
 	status = Status.REQUEST_FOR_CONNECT;
-	commandListener = new CommandListenerThread(outcomingConnection);
-	commandListener.addObserver(outcomingConnectionObserver);
-	commandListener.start();
+	outcomingCommandListener = new CommandListenerThread(outcomingConnection);
+	outcomingCommandListener.addObserver(outcomingConnectionObserver);
+	outcomingCommandListener.start();
       }
-    } catch (IOException e1) {
-//      e1.printStackTrace();
-      form.showNoConnectionDialog();
+    } catch (IOException e) {
+      closeConnection();
+      form.showConnectionFailDialog();
+    }
+  }
+
+  public void acceptIncomingCall() {
+    try {
+      incomingConnection.accept();
+      status = Status.BUSY;
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public void rejectIncomingCall() {
+    try {
+      incomingConnection.reject();
+      closeConnection();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+  
+  public void finishCall() {
+    if ((outcomingConnection != null) && (outcomingConnection.isConnected()))
+      try {
+	outcomingConnection.disconnect();
+      } catch (IOException e) {
+	e.printStackTrace();
+      }
+  }
+
+  public void closeConnection() {
+    if ((outcomingCommandListener != null) && (outcomingCommandListener.isListening())) {
+      outcomingCommandListener.stop();
+      outcomingCommandListener.deleteObservers();
+    }
+    if ((incomingCommandListener != null) && (incomingCommandListener.isListening())) {
+      incomingCommandListener.stop();
+      incomingCommandListener.deleteObservers();
+    }
+    status = Status.OK;
+  }
+
+  public void sendMessage(String text) {
+    if (((outcomingConnection == null) ^ (incomingConnection == null)) || ((outcomingConnection.isClosed()) ^ (incomingConnection.isClosed())) || (((InetSocketAddress) caller.getRemoteAddress()).equals((InetSocketAddress) callListener.getListenAddress()))) {  
+      if (! text.endsWith(Protocol.endOfLine))
+	text = text + Protocol.endOfLine;
+      try {
+	if (! ((outcomingConnection == null) || (outcomingConnection.isClosed()))) {
+	  outcomingConnection.sendMessage(text);
+	}
+	if (! ((incomingConnection == null) || (incomingConnection.isClosed()))) {
+	  incomingConnection.sendMessage(text);
+	}
+      } catch (IOException e) {
+	e.printStackTrace();
+      }
     }
   }
   
   public void addMessage(String nick, String msgText) {
     if (msgText != null) {
+      if (! msgText.endsWith(Protocol.endOfLine))
+	msgText = msgText + Protocol.endOfLine;
       messageContainer.addMessage(nick, new Date(System.currentTimeMillis()), msgText);
     }
-  }
-  
-  public TableModel getContactModel() {
-    return contactModel;
-  }
-  
-  public HistoryModel getMessageHistoryModel() {
-    return messageContainer;
-  }
-  
-  public MainForm getForm() {
-    return form;
-  }
-  
-  public boolean isBusy() {
-    return status != Status.OK;
   }
 
   public static void main(String[] args) {
     Application chatApp = new Application();
-    SwingUtilities.invokeLater(new Runnable() {
+    EventQueue.invokeLater(new Runnable() {
       public void run() {
 	chatApp.getForm().setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 	chatApp.getForm().setLocationByPlatform(true);
-	chatApp.getForm().setVisible(true);
+	chatApp.getForm().show();
       }
     });
   }
