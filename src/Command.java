@@ -11,11 +11,10 @@ class Command {
   }
 
   public static Command getCommand(String text) {
-    //System.out.println(text);
     String capital_text = text.toUpperCase();
-    int user_index = capital_text.indexOf(" " + Protocol.nickCommandPhrase + " ", 7);
-    if ((capital_text.indexOf(Protocol.programName.toUpperCase() + " ", 0) == 0) && (user_index > 7)) {
-      return new NickCommand(text.substring(user_index + 6, text.length() - 1));
+    int user_index = capital_text.indexOf(" " + Protocol.nickCommandPhrase + " ", Protocol.programName.length());
+    if ((capital_text.indexOf(Protocol.programName.toUpperCase() + " ", 0) == 0) && (user_index > Protocol.programName.length() + 1)) {
+      return new NickCommand(text.substring(user_index + Protocol.nickCommandPhrase.length() + 2, text.length() - 1));
     }
     if (capital_text.indexOf(Protocol.disconnectionCommandPhrase, 0) == 0) {
       return new Command(CommandType.DISCONNECT);
@@ -27,7 +26,7 @@ class Command {
       return new Command(CommandType.REJECT);
     }
     if (capital_text.indexOf(Protocol.messageCommandPhrase, 0) == 0) {
-      return new MessageCommand(text.substring(8));
+      return new MessageCommand(text.substring(Protocol.messageCommandPhrase.length() + Protocol.endOfLine.length()));
     }
     return null;
   }

@@ -7,7 +7,7 @@ import java.util.Observable;
 class CallListenerThread extends Observable implements Runnable {
   private Connection lastConnection;
   private final CallListener cl;
-  private boolean sleep;
+  private boolean stopped;
   private final Thread thisThread;
 
   public CallListenerThread(CallListener listener) throws IOException {
@@ -20,11 +20,11 @@ class CallListenerThread extends Observable implements Runnable {
   }
 
   public void stop() {
-    sleep = true;
+    stopped = true;
     try {
       cl.close();
-    } catch (IOException ex) {
-      ex.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
     }
   }
 
@@ -40,7 +40,7 @@ class CallListenerThread extends Observable implements Runnable {
       } catch (IOException ex) {
 	stop();
       }
-    } while (! sleep);
+    } while (! stopped);
   }
 
   public Connection getLastConnection() {

@@ -7,13 +7,12 @@ class NickCommand extends Command {
 
   protected NickCommand(String nickInfo) {
     super(Command.CommandType.NICK);
-    busy = nickInfo.contains(" busy");
+    busy = nickInfo.endsWith(" " + Protocol.busyStatusPhrase);
     if (busy) {
       nick = nickInfo.substring(0, nickInfo.lastIndexOf(' '));
     } else {
       nick = nickInfo.substring(0);
     }
-
   }
 
   public String getNick() {
