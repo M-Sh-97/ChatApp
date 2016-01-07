@@ -310,14 +310,13 @@ public class Application {
   public void rejectIncomingCall() {
     try {
       incomingConnection.reject();
-      closeConnection();
     } catch (IOException e) {
       e.printStackTrace();
     }
   }
   
   public void finishCall() {
-    if ((outcomingConnection != null) && (outcomingConnection.isConnected()))
+    if (outcomingConnection.isConnected())
       try {
 	outcomingConnection.disconnect();
       } catch (IOException e) {

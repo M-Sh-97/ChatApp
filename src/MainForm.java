@@ -128,6 +128,9 @@ class MainForm extends JFrame {
       public void actionPerformed(ActionEvent e) {
 	blockDialogComponents(true);
 	logicModel.finishCall();
+	try {
+	  Thread.sleep(100);
+	} catch (InterruptedException ex) {}
 	logicModel.closeConnection();
 	blockRemoteUserInfo(false);
       }
@@ -253,6 +256,10 @@ class MainForm extends JFrame {
       blockDialogComponents(false);
     } else {
       logicModel.rejectIncomingCall();
+      try {
+	Thread.sleep(100);
+      } catch (InterruptedException ex) {}
+      logicModel.closeConnection();
     }
   }
 
