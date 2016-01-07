@@ -8,63 +8,52 @@
     <properties/>
     <border type="none"/>
     <children>
-      <component id="c0876" class="javax.swing.JLabel">
+      <component id="c0876" class="javax.swing.JLabel" binding="labelRemoteUser">
         <constraints>
           <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false">
             <preferred-size width="124" height="25"/>
           </grid>
         </constraints>
-        <properties>
-          <text value="Удалённый пользователь"/>
-        </properties>
+        <properties/>
       </component>
-      <component id="2bb7f" class="javax.swing.JLabel">
+      <component id="2bb7f" class="javax.swing.JLabel" binding="labelIP">
         <constraints>
           <grid row="1" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false">
             <preferred-size width="124" height="22"/>
           </grid>
         </constraints>
-        <properties>
-          <text value="Удалённый IP-адрес"/>
-        </properties>
+        <properties/>
       </component>
-      <component id="950b4" class="javax.swing.JTextField" binding="textFieldIp">
+      <component id="950b4" class="javax.swing.JTextField" binding="textFieldIP">
         <constraints>
           <grid row="1" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
             <preferred-size width="165" height="22"/>
           </grid>
         </constraints>
-        <properties>
-          <enabled value="false"/>
-        </properties>
+        <properties/>
       </component>
-      <component id="650e0" class="javax.swing.JTextField" binding="textFieldRemoteNick">
+      <component id="650e0" class="javax.swing.JTextField" binding="textFieldRemoteUser">
         <constraints>
           <grid row="0" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
             <preferred-size width="165" height="25"/>
           </grid>
         </constraints>
-        <properties>
-          <editable value="false"/>
-          <enabled value="false"/>
-        </properties>
+        <properties/>
       </component>
-      <component id="904c1" class="javax.swing.JLabel">
+      <component id="904c1" class="javax.swing.JLabel" binding="labelLocalUser">
         <constraints>
           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false">
             <preferred-size width="142" height="25"/>
           </grid>
         </constraints>
-        <properties>
-          <text value="Локальный пользователь"/>
-        </properties>
+        <properties/>
       </component>
       <hspacer id="b0fff">
         <constraints>
           <grid row="0" column="2" row-span="2" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
         </constraints>
       </hspacer>
-      <component id="337c9" class="javax.swing.JButton" binding="connect">
+      <component id="337c9" class="javax.swing.JButton" binding="buttonConnect">
         <constraints>
           <grid row="0" column="5" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false">
             <preferred-size width="121" height="25"/>
@@ -72,11 +61,9 @@
         </constraints>
         <properties>
           <background color="-13309952"/>
-          <enabled value="false"/>
-          <text value="Подсоединиться"/>
         </properties>
       </component>
-      <component id="1dd43" class="javax.swing.JButton" binding="disconnect">
+      <component id="1dd43" class="javax.swing.JButton" binding="buttonDisconnect">
         <constraints>
           <grid row="1" column="5" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false">
             <preferred-size width="113" height="22"/>
@@ -84,22 +71,17 @@
         </constraints>
         <properties>
           <background color="-1562601"/>
-          <enabled value="false"/>
-          <text value="Отсоединиться"/>
         </properties>
       </component>
-      <component id="c93c4" class="javax.swing.JButton" binding="buttonAddFriends">
+      <component id="c93c4" class="javax.swing.JButton" binding="buttonContactAdding">
         <constraints>
           <grid row="2" column="5" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false">
             <preferred-size width="133" height="26"/>
           </grid>
         </constraints>
-        <properties>
-          <enabled value="false"/>
-          <text value="Добавить в список"/>
-        </properties>
+        <properties/>
       </component>
-      <scrollpane id="62a96">
+      <scrollpane id="62a96" binding="scrollMessageHistory">
         <constraints>
           <grid row="2" column="0" row-span="2" col-span="5" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
         </constraints>
@@ -109,17 +91,13 @@
           <component id="d7f1f" class="javax.swing.JTextArea" binding="messageHistory">
             <constraints/>
             <properties>
-              <editable value="false"/>
-              <enabled value="false"/>
               <font name="Roboto" size="15" style="0"/>
-              <lineWrap value="true"/>
               <requestFocusEnabled value="false"/>
-              <wrapStyleWord value="true"/>
             </properties>
           </component>
         </children>
       </scrollpane>
-      <scrollpane id="59b82">
+      <scrollpane id="59b82" binding="scrollContactTable">
         <constraints>
           <grid row="3" column="5" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
         </constraints>
@@ -129,36 +107,27 @@
         </properties>
         <border type="none"/>
         <children>
-          <component id="daf2a" class="javax.swing.JTable" binding="tableFriends">
+          <component id="daf2a" class="javax.swing.JTable" binding="contactTable">
             <constraints/>
-            <properties>
-              <autoResizeMode value="2"/>
-              <enabled value="false"/>
-            </properties>
+            <properties/>
           </component>
         </children>
       </scrollpane>
-      <component id="5741" class="javax.swing.JButton" binding="sendButton">
+      <component id="5741" class="javax.swing.JButton" binding="buttonSend">
         <constraints>
           <grid row="5" column="5" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties>
           <background color="-13710360"/>
-          <enabled value="false"/>
-          <hideActionText value="true"/>
-          <text value="Отправить"/>
         </properties>
       </component>
-      <component id="ac4ac" class="javax.swing.JButton" binding="buttonRemoveFriends">
+      <component id="ac4ac" class="javax.swing.JButton" binding="buttonContactRemoving">
         <constraints>
           <grid row="4" column="5" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
         </constraints>
-        <properties>
-          <enabled value="false"/>
-          <text value="Убрать из списка"/>
-        </properties>
+        <properties/>
       </component>
-      <component id="3962e" class="javax.swing.JTextField" binding="textFieldLocalNick">
+      <component id="3962e" class="javax.swing.JTextField" binding="textFieldLocalUser">
         <constraints>
           <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
             <preferred-size width="142" height="22"/>
@@ -166,28 +135,23 @@
         </constraints>
         <properties/>
       </component>
-      <component id="40509" class="javax.swing.JButton" binding="logOutButton" default-binding="true">
+      <component id="40509" class="javax.swing.JButton" binding="buttonLogOut">
         <constraints>
           <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false">
             <preferred-size width="55" height="22"/>
           </grid>
         </constraints>
-        <properties>
-          <enabled value="false"/>
-          <text value="Выйти"/>
-        </properties>
+        <properties/>
       </component>
-      <component id="fb71e" class="javax.swing.JButton" binding="logInButton">
+      <component id="fb71e" class="javax.swing.JButton" binding="buttonLogIn">
         <constraints>
           <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false">
             <preferred-size width="55" height="25"/>
           </grid>
         </constraints>
-        <properties>
-          <text value="Войти"/>
-        </properties>
+        <properties/>
       </component>
-      <scrollpane id="bdf9f">
+      <scrollpane id="bdf9f" binding="scrollMessageTypingSpace">
         <constraints>
           <grid row="4" column="0" row-span="2" col-span="5" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
         </constraints>
@@ -197,10 +161,7 @@
           <component id="a4b0a" class="javax.swing.JTextArea" binding="messageTypingSpace">
             <constraints/>
             <properties>
-              <enabled value="false"/>
               <font name="Roboto" size="15" style="0"/>
-              <lineWrap value="true"/>
-              <wrapStyleWord value="true"/>
             </properties>
           </component>
         </children>

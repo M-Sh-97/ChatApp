@@ -7,14 +7,14 @@ import java.net.SocketAddress;
  * @author M-Sh-97
  */
 class Caller {
-  private String localNick, remoteNick;
+  private String localUserNick, remoteUserNick;
   private SocketAddress remoteAddress;
   private Socket s;
   private CallStatus status;
   static enum CallStatus {OK, NOT_ACCESSIBLE, BUSY, REJECTED, NO_SERVICE};
 
   public Caller() {
-    this(Protocol.defaultLocalNick, new InetSocketAddress(Protocol.defaultLocalIPAddress, Protocol.port));
+    this(Protocol.defaultLocalUserNick, new InetSocketAddress(Protocol.defaultLocalIPAddress, Protocol.port));
   }
 
   public Caller(String localNick) {
@@ -22,7 +22,7 @@ class Caller {
   }
 
   public Caller(String localNick, SocketAddress remoteAddress) {
-    this.localNick = localNick;
+    this.localUserNick = localNick;
     this.remoteAddress = remoteAddress;
   }
 
@@ -36,32 +36,32 @@ class Caller {
     return new Connection(s);
   }
 
-  public String getLocalNick() {
-    return localNick;
+  public String getLocalUserNick() {
+    return localUserNick;
   }
 
   public SocketAddress getRemoteAddress() {
     return remoteAddress;
   }
 
-  public String getRemoteNick() {
-    return remoteNick;
+  public String getRemoteUserNick() {
+    return remoteUserNick;
   }
 
   public CallStatus getStatus() {
     return status;
   }
 
-  public void setLocalNick(String localNick) {
-    this.localNick = localNick;
+  public void setLocalUserNick(String localUserNick) {
+    this.localUserNick = localUserNick;
   }
 
   public void setRemoteAddress(SocketAddress remoteAddress) {
     this.remoteAddress = remoteAddress;
   }
 
-  public void setRemoteNick(String remoteNick) {
-    this.remoteNick = remoteNick;
+  public void setRemoteUserNick(String remoteUserNick) {
+    this.remoteUserNick = remoteUserNick;
   }
   
   public void close() throws IOException {

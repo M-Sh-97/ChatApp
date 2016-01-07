@@ -8,13 +8,13 @@ import java.net.SocketAddress;
  * @author M-Sh-97
  */
 class CallListener {
-  private String remoteNick, localNick;
+  private String remoteUserNick, localUserNick;
   private ServerSocket ss;
   private boolean busy;
   private SocketAddress listenAddress, remoteAddress;
 
   public CallListener() throws IOException {
-    this(Protocol.defaultLocalNick, Protocol.defaultLocalIPAddress);
+    this(Protocol.defaultLocalUserNick, Protocol.defaultLocalIPAddress);
   }
 
   public CallListener(String localNick) throws IOException {
@@ -24,7 +24,7 @@ class CallListener {
   public CallListener(String localNick, String localIP) throws IOException {
     ss = new ServerSocket();
     ss.bind(new InetSocketAddress(localIP, Protocol.port));
-    this.localNick = localNick;
+    this.localUserNick = localNick;
     this.listenAddress = ss.getLocalSocketAddress();
   }
 
@@ -34,8 +34,8 @@ class CallListener {
     return new Connection(socket);
   }
 
-  public String getLocalNick() {
-    return localNick;
+  public String getLocalUserNick() {
+    return localUserNick;
   }
 
   public boolean isBusy() {
@@ -46,16 +46,16 @@ class CallListener {
     return listenAddress;
   }
 
-  public String getRemoteNick() {
-    return remoteNick;
+  public String getRemoteUserNick() {
+    return remoteUserNick;
   }
 
   public SocketAddress getRemoteAddress() {
     return remoteAddress;
   }
 
-  public void setLocalNick(String localNick) {
-    this.localNick = localNick;
+  public void setLocalUserNick(String localUserNick) {
+    this.localUserNick = localUserNick;
   }
 
   public void setBusy(boolean busy) {
@@ -66,8 +66,8 @@ class CallListener {
     this.listenAddress = listenAddress;
   }
 
-  public void setRemoteNick(String remoteNick) {
-    this.remoteNick = remoteNick;
+  public void setRemoteUserNick(String remoteUserNick) {
+    this.remoteUserNick = remoteUserNick;
   }
   
   public void close() throws IOException {

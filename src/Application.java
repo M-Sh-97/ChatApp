@@ -20,7 +20,7 @@ import javax.swing.table.TableModel;
  */
 public class Application {
   private MainForm form;
-  private String localNick;
+  private String localUserNick;
   private final DefaultTableModel contactModel;
   private Connection incomingConnection,
 		     outcomingConnection;
@@ -55,15 +55,15 @@ public class Application {
 	  public void run() {
 	    if (o instanceof CommandListenerThread) {
 	      if (((Command) arg).getType() == Command.CommandType.NICK) {
-		caller.setRemoteNick(((NickCommand) arg).getNick());
-		form.showRemoteNick(caller.getRemoteNick());
+		caller.setRemoteUserNick(((NickCommand) arg).getNick());
+		form.showRemoteUserNick(caller.getRemoteUserNick());
 		form.blockRemoteUserInfo(true);
 		try {
 		  if (((NickCommand) arg).getBusyStatus()) {
 		    closeConnection();
 		    form.showBusyCalleeDialog();
 		  } else
-		    outcomingConnection.sendNickHello(localNick);
+		    outcomingConnection.sendNickHello(localUserNick);
 		} catch (IOException e) {
 		  e.printStackTrace();
 		}
@@ -74,7 +74,7 @@ public class Application {
 		closeConnection();
 		form.showRejectedCallDialog();
 	      } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
-		addMessage(caller.getRemoteNick(), ((MessageCommand) arg).getMessage());
+		addMessage(caller.getRemoteUserNick(), ((MessageCommand) arg).getMessage());
 	      } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
 		closeConnection();
 		form.showCallFinishDialog();
@@ -93,10 +93,10 @@ public class Application {
 	  public void run() {
 	    if (o instanceof CommandListenerThread) {
 	      if (((Command) arg).getType() == Command.CommandType.NICK) {
-		  callListener.setRemoteNick(((NickCommand) arg).getNick());
-		  form.showIncomingCallDialog(callListener.getRemoteNick(), ((InetSocketAddress) callListener.getRemoteAddress()).getHostString());
+		  callListener.setRemoteUserNick(((NickCommand) arg).getNick());
+		  form.showIncomingCallDialog(callListener.getRemoteUserNick(), ((InetSocketAddress) callListener.getRemoteAddress()).getHostString());
 	      } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
-		addMessage(callListener.getRemoteNick(), ((MessageCommand) arg).getMessage());
+		addMessage(callListener.getRemoteUserNick(), ((MessageCommand) arg).getMessage());
 	      } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
 		closeConnection();
 		form.showCallFinishDialog();
@@ -119,12 +119,12 @@ public class Application {
 	      incomingCommandListener.addObserver(incomingConnectionObserver);
 	      try {
 		incomingCommandListener.start();
-		incomingConnection.sendNickHello(localNick);
+		incomingConnection.sendNickHello(localUserNick);
 	      } catch (IllegalThreadStateException ex) {
 		closeConnection();
 	      }
 	    } else
-	      ((Connection) arg).sendNickBusy(localNick);
+	      ((Connection) arg).sendNickBusy(localUserNick);
 	  } catch (IOException e) {
 	    e.printStackTrace();
 	  }
@@ -158,8 +158,8 @@ public class Application {
     return messageContainer;
   }
 
-  public String getLocalNick() {
-    return localNick;
+  public String getLocalUserNick() {
+    return localUserNick;
   }
   
   public DateFormat getDateFormat() {
@@ -173,10 +173,10 @@ public class Application {
   
   public void logIn(String newNick) {
     if (newNick.isEmpty())
-      localNick = Protocol.defaultLocalNick;
+      localUserNick = Protocol.defaultLocalUserNick;
     else
-      localNick = newNick;
-    contactDataServer.setLocalNick(localNick);
+      localUserNick = newNick;
+    contactDataServer.setLocalNick(localUserNick);
     contactDataServer.connect();
     status = Status.SERVER_NOT_STARTED;
   }
@@ -185,15 +185,15 @@ public class Application {
     if (contactDataServer.isConnected())
       contactDataServer.disconnect();
     messageContainer.clear();
-    localNick = null;
+    localUserNick = null;
   }
   
   public void startListeningForCalls() {
     if (contactDataServer.isConnected())
-      if (! contactDataServer.isNickOnline(localNick))
+      if (! contactDataServer.isNickOnline(localUserNick))
 	contactDataServer.goOnline(Protocol.port);
     try {
-      callListener = new CallListener(localNick);
+      callListener = new CallListener(localUserNick);
       callListenerThread = new CallListenerThread(callListener);
       callListenerThread.addObserver(incomingCallObserver);
       status = Status.OK;
@@ -205,7 +205,7 @@ public class Application {
 
   public void finishListeningForCalls() {
     if (contactDataServer.isConnected())
-      if (contactDataServer.isNickOnline(localNick))
+      if (contactDataServer.isNickOnline(localUserNick))
 	contactDataServer.goOffline();
     callListenerThread.stop();
   }
@@ -232,7 +232,7 @@ public class Application {
   
   public void loadContactsFromFile() {
     clearContacts();
-    try (BufferedReader bufferedReader = new BufferedReader(new FileReader(localNick + Protocol.contactFileName))) {
+    try (BufferedReader bufferedReader = new BufferedReader(new FileReader(localUserNick + Protocol.contactFileName))) {
       while (bufferedReader.ready()) {
 	Vector<String> tmp = new Vector<>();
 	String nick = bufferedReader.readLine();
@@ -248,7 +248,7 @@ public class Application {
   }
   
   public void saveContactsToFile() {
-    try (FileWriter fileWriter = new FileWriter(localNick + Protocol.contactFileName)) {
+    try (FileWriter fileWriter = new FileWriter(localUserNick + Protocol.contactFileName)) {
       for (int i = 0; i < contactModel.getRowCount(); i++) {
 	fileWriter.write(contactModel.getValueAt(i, 0).toString() + Protocol.endOfLine);
 	fileWriter.write(contactModel.getValueAt(i, 1).toString() + Protocol.endOfLine);
@@ -283,7 +283,7 @@ public class Application {
   }
   
   public void makeOutcomingCall(String remoteIP) {
-    caller = new Caller(localNick, remoteIP);
+    caller = new Caller(localUserNick, remoteIP);
     try {
       if (status == Status.OK) {
 	outcomingConnection = caller.call();

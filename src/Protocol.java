@@ -6,7 +6,7 @@ interface Protocol {
     static final String endOfLine = "\n",
                         defaultLocalIPAddress = "0.0.0.0",
                         encoding = "UTF-8",
-                        defaultLocalNick = "Без имени",
+                        defaultLocalUserNick = "Без имени",
                         version = "3.0",
                         programName = "ChatApp",
 			serverAddress = "jdbc:mysql://files.litvinov.in.ua/chatapp_server?characterEncoding=utf-8&useUnicode=true",
