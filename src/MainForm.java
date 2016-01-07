@@ -94,7 +94,6 @@ class MainForm extends JFrame {
     
     blockDialogComponents(true);
     blockLocalUserInfo(false);
-    textFieldRemoteUser.setEnabled(false);
     
     logicModel = logic;
     contactTable.setModel(logicModel.getContactModel());
@@ -175,16 +174,8 @@ class MainForm extends JFrame {
     addWindowListener(new WindowAdapter() {
       @Override
       public void windowClosing(WindowEvent e) {
-	if (! logicModel.isBusy()) {
-	  Object[] option = {"Да", "Нет"};
-	  if (JOptionPane.showOptionDialog(e.getComponent(), "Вы действительно хотите выйти?", "Выход из программы", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]) == 0) {
-	    if (logicModel.getLocalUserNick() != null)
-	      buttonLogOut.doClick();
-	    hide();
-	    dispose();
-	    System.exit(0);
-	  }
-	}
+	if (! logicModel.isBusy())
+	  showExitDialog();
       }
     });
 
@@ -285,20 +276,33 @@ class MainForm extends JFrame {
     JOptionPane.showMessageDialog(this, "Невозможно подсоединиться.", "Неуспешное соединение", JOptionPane.INFORMATION_MESSAGE);
     blockRemoteUserInfo(false);
   }
+  
+  public void showExitDialog() {
+    Object[] option = {"Да", "Нет"};
+    if (JOptionPane.showOptionDialog(this, "Вы действительно хотите выйти?", "Выход из программы", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]) == 0) {
+      if (logicModel.getLocalUserNick() != null)
+	buttonLogOut.doClick();
+      hide();
+      dispose();
+      System.exit(0);
+    }
+  }
 
-  public void blockDialogComponents(boolean blockingFlag) {
+  public final void blockDialogComponents(boolean blockingFlag) {
     buttonDisconnect.setEnabled(! blockingFlag);
     messageTypingSpace.setEnabled(! blockingFlag);
     buttonSend.setEnabled(! blockingFlag);
     messageHistory.setEnabled(! blockingFlag);
     buttonLogOut.setEnabled(blockingFlag);
     buttonConnect.setEnabled(blockingFlag);
+    contactTable.setEnabled(blockingFlag);
   }
 
-  public void blockLocalUserInfo(boolean blockingFlag) {
+  public final void blockLocalUserInfo(boolean blockingFlag) {
     buttonConnect.setEnabled(blockingFlag);
     buttonContactAdding.setEnabled(blockingFlag);
     buttonContactRemoving.setEnabled(blockingFlag);
+    textFieldRemoteUser.setEnabled(blockingFlag);
     textFieldIP.setEnabled(blockingFlag);
     contactTable.setEnabled(blockingFlag);
     textFieldLocalUser.setEnabled(! blockingFlag);
@@ -306,7 +310,8 @@ class MainForm extends JFrame {
     buttonLogOut.setEnabled(blockingFlag);
   }
 
-  public void blockRemoteUserInfo(boolean blockingFlag) {
+  public final void blockRemoteUserInfo(boolean blockingFlag) {
+    textFieldRemoteUser.setEnabled(! blockingFlag);
     textFieldIP.setEnabled(! blockingFlag);
   }
 
