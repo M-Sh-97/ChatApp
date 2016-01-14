@@ -20,7 +20,8 @@ import javax.swing.table.TableModel;
  */
 public class Application {
   private MainForm form;
-  private String localUserNick;
+  private String localUserNick,
+		 remoteUserNick;
   private final DefaultTableModel contactModel;
   private Connection incomingConnection,
 		     outcomingConnection;
@@ -68,6 +69,7 @@ public class Application {
 		  e.printStackTrace();
 		}
 	      } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
+		remoteUserNick = caller.getRemoteUserNick();
 		messageContainer.clear();
 		form.blockDialogComponents(false);
 	      } else if (((Command) arg).getType() == Command.CommandType.REJECT) {
@@ -162,6 +164,10 @@ public class Application {
     return localUserNick;
   }
   
+  public String getRemoteUserNick() {
+    return remoteUserNick;
+  }
+  
   public DateFormat getDateFormat() {
     return dateFormatter;
   }
@@ -185,7 +191,9 @@ public class Application {
     if (contactDataServer.isConnected())
       contactDataServer.disconnect();
     messageContainer.clear();
+    clearContacts();
     localUserNick = null;
+    remoteUserNick = null;
   }
   
   public void startListeningForCalls() {
@@ -232,7 +240,7 @@ public class Application {
   
   public void loadContactsFromFile() {
     clearContacts();
-    try (BufferedReader bufferedReader = new BufferedReader(new FileReader(localUserNick + Protocol.contactFileName))) {
+    try (BufferedReader bufferedReader = new BufferedReader(new FileReader(localUserNick + Protocol.userDataFileExtension))) {
       while (bufferedReader.ready()) {
 	Vector<String> tmp = new Vector<>();
 	String nick = bufferedReader.readLine();
@@ -248,7 +256,7 @@ public class Application {
   }
   
   public void saveContactsToFile() {
-    try (FileWriter fileWriter = new FileWriter(localUserNick + Protocol.contactFileName)) {
+    try (FileWriter fileWriter = new FileWriter(localUserNick + Protocol.userDataFileExtension)) {
       for (int i = 0; i < contactModel.getRowCount(); i++) {
 	fileWriter.write(contactModel.getValueAt(i, 0).toString() + Protocol.endOfLine);
 	fileWriter.write(contactModel.getValueAt(i, 1).toString() + Protocol.endOfLine);
@@ -301,6 +309,7 @@ public class Application {
   public void acceptIncomingCall() {
     try {
       incomingConnection.accept();
+      remoteUserNick = callListener.getRemoteUserNick();
       status = Status.BUSY;
     } catch (IOException e) {
       e.printStackTrace();
@@ -358,6 +367,35 @@ public class Application {
       if (! msgText.endsWith(Protocol.endOfLine))
 	msgText = msgText + Protocol.endOfLine;
       messageContainer.addMessage(nick, new Date(System.currentTimeMillis()), msgText);
+    }
+  }
+  
+  public void saveMessageHistory(String messageAreaText) {
+    if (messageContainer.getSize() > 0) {
+      StringBuilder fn = new StringBuilder();
+      fn.append(localUserNick);
+      fn.append(' ');
+      fn.append('-');
+      fn.append(' ');
+      fn.append(remoteUserNick);
+      fn.append(',');
+      fn.append(' ');
+      fn.append(dateFormatter.format(messageContainer.getMessage(0).getDate()));
+      fn.append(' ');
+      fn.append('-');
+      fn.append(' ');
+      fn.append(dateFormatter.format(messageContainer.getMessage(messageContainer.getSize() - 1).getDate()));
+      fn.append(Protocol.userDataFileExtension);
+      for (short index = 0; index < fn.length(); index ++) {
+	if (fn.charAt(index) == ':')
+	  fn.setCharAt(index, '-');
+      }
+      try (FileWriter mhw = new FileWriter(fn.toString())) {
+	mhw.write(messageAreaText);
+	mhw.flush();
+      } catch (IOException e) {
+	e.printStackTrace();
+      }
     }
   }
 
