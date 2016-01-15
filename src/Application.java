@@ -12,7 +12,6 @@ import java.util.Observable;
 import java.util.Observer;
 import java.util.Vector;
 import javax.swing.JFrame;
-import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
 /**
@@ -22,7 +21,7 @@ public class Application {
   private MainForm form;
   private String localUserNick,
 		 remoteUserNick;
-  private final DefaultTableModel contactModel;
+  private final ContactTableModel contactModel;
   private Connection incomingConnection,
 		     outcomingConnection;
   private Caller caller;
@@ -136,7 +135,10 @@ public class Application {
     Vector<String> header = new Vector<>(2);
     header.add("Пользователь");
     header.add("IP-адрес");
-    contactModel = new DefaultTableModel(header, 0);
+    Vector<Boolean> permissions = new Vector<>(2);
+    permissions.add(Boolean.FALSE);
+    permissions.add(Boolean.FALSE);
+    contactModel = new ContactTableModel(header, 0, permissions);
 
     messageContainer = new HistoryModel();
     
@@ -286,8 +288,7 @@ public class Application {
   }
 
   public void clearContacts() {
-    while (contactModel.getRowCount() > 0)
-      contactModel.removeRow(0);
+    contactModel.clearDataVector();
   }
   
   public void makeOutcomingCall(String remoteIP) {

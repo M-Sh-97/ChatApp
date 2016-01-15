@@ -38,7 +38,7 @@ public class ServerConnection {
       st = con.createStatement();
     } catch (SQLException e) {
       // TODO throw real error
-      e.printStackTrace();
+//      e.printStackTrace();
     }// catch
   }
 
