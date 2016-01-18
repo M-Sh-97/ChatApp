@@ -215,8 +215,8 @@ class MainForm extends JFrame {
     buttonContactAdding.setDisplayedMnemonicIndex(2);
     buttonContactRemoving.setMnemonic(KeyEvent.VK_H);
     buttonContactRemoving.setDisplayedMnemonicIndex(2);
-    buttonHistorySaving.setMnemonic(KeyEvent.VK_OPEN_BRACKET);
-    buttonHistorySaving.setDisplayedMnemonicIndex(2);
+    buttonHistorySaving.setMnemonic(KeyEvent.VK_C);
+    buttonHistorySaving.setDisplayedMnemonicIndex(0);
     
     StringBuilder sm = new StringBuilder(Protocol.programName.length() + Protocol.version.length() + 1);
     sm.append(Protocol.programName);
