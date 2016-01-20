@@ -30,7 +30,7 @@ public class Application {
   private CommandListenerThread outcomingCommandListener,
 				incomingCommandListener;
   private final ServerConnection contactDataServer;
-  private static enum Status {BUSY, SERVER_NOT_STARTED, OK, CLIENT_CONNECTED, REQUEST_FOR_CONNECT};
+  private static enum Status {BUSY, NO_CALL_LISTENING, OK, CLIENT_CONNECTED, REQUEST_FOR_CONNECT};
   private final Observer outcomingConnectionObserver,
 			 incomingConnectionObserver,
 			 incomingCallObserver;
@@ -50,61 +50,51 @@ public class Application {
     outcomingConnectionObserver = new Observer() {
       @Override
       public void update(Observable o, Object arg) {
-	EventQueue.invokeLater(new Runnable() {
-	  @Override
-	  public void run() {
-	    if (o instanceof CommandListenerThread) {
-	      if (((Command) arg).getType() == Command.CommandType.NICK) {
-		caller.setRemoteUserNick(((NickCommand) arg).getNick());
-		form.showRemoteUserNick(caller.getRemoteUserNick());
-		form.blockRemoteUserInfo(true);
-		try {
-		  if (((NickCommand) arg).getBusyStatus()) {
-		    closeConnection();
-		    form.showBusyCalleeDialog();
-		  } else
-		    outcomingConnection.sendNickHello(localUserNick);
-		} catch (IOException e) {
-		  e.printStackTrace();
-		}
-	      } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
-		remoteUserNick = caller.getRemoteUserNick();
-		messageContainer.clear();
-		form.blockDialogComponents(false);
-	      } else if (((Command) arg).getType() == Command.CommandType.REJECT) {
+	if (o instanceof CommandListenerThread) {
+	  if (((Command) arg).getType() == Command.CommandType.NICK) {
+	    caller.setRemoteUserNick(((NickCommand) arg).getNick());
+	    form.showRemoteUserNick(caller.getRemoteUserNick());
+	    form.blockRemoteUserInfo(true);
+	    try {
+	      if (((NickCommand) arg).getBusyStatus()) {
 		closeConnection();
-		form.showRejectedCallDialog();
-	      } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
-		addMessage(caller.getRemoteUserNick(), ((MessageCommand) arg).getMessage());
-	      } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
-		closeConnection();
-		form.showCallFinishDialog();
-	      }
+		form.showBusyCalleeDialog();
+	      } else
+		outcomingConnection.sendNickHello(localUserNick);
+	    } catch (IOException e) {
+	      e.printStackTrace();
 	    }
+	  } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
+	    remoteUserNick = caller.getRemoteUserNick();
+	    messageContainer.clear();
+	    form.blockDialogComponents(false);
+	  } else if (((Command) arg).getType() == Command.CommandType.REJECT) {
+	    closeConnection();
+	    form.showRejectedCallDialog();
+	  } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
+	    addMessage(caller.getRemoteUserNick(), ((MessageCommand) arg).getMessage());
+	  } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
+	    closeConnection();
+	    form.showCallFinishDialog();
 	  }
-	});
+	}
       }
     };
 
     incomingConnectionObserver = new Observer() {
       @Override
       public void update(Observable o, Object arg) {
-	EventQueue.invokeLater(new Runnable() {
-	  @Override
-	  public void run() {
-	    if (o instanceof CommandListenerThread) {
-	      if (((Command) arg).getType() == Command.CommandType.NICK) {
-		  callListener.setRemoteUserNick(((NickCommand) arg).getNick());
-		  form.showIncomingCallDialog(callListener.getRemoteUserNick(), ((InetSocketAddress) callListener.getRemoteAddress()).getHostString());
-	      } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
-		addMessage(callListener.getRemoteUserNick(), ((MessageCommand) arg).getMessage());
-	      } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
-		closeConnection();
-		form.showCallFinishDialog();
-	      }
-	    }
+	if (o instanceof CommandListenerThread) {
+	  if (((Command) arg).getType() == Command.CommandType.NICK) {
+	      callListener.setRemoteUserNick(((NickCommand) arg).getNick());
+	      form.showIncomingCallDialog(callListener.getRemoteUserNick(), ((InetSocketAddress) callListener.getRemoteAddress()).getHostString());
+	  } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
+	    addMessage(callListener.getRemoteUserNick(), ((MessageCommand) arg).getMessage());
+	  } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
+	    closeConnection();
+	    form.showCallFinishDialog();
 	  }
-	});
+	}
       }
     };
 
@@ -186,7 +176,7 @@ public class Application {
       localUserNick = newNick;
     contactDataServer.setLocalNick(localUserNick);
     contactDataServer.connect();
-    status = Status.SERVER_NOT_STARTED;
+    status = Status.NO_CALL_LISTENING;
   }
 
   public void logOut() {
@@ -196,6 +186,7 @@ public class Application {
     clearContacts();
     localUserNick = null;
     remoteUserNick = null;
+    status = Status.OK;
   }
   
   public void startListeningForCalls() {
@@ -218,6 +209,7 @@ public class Application {
       if (contactDataServer.isNickOnline(localUserNick))
 	contactDataServer.goOffline();
     callListenerThread.stop();
+    status = Status.NO_CALL_LISTENING;
   }
   
   public void loadContactsFromServer() {
@@ -260,8 +252,8 @@ public class Application {
   public void saveContactsToFile() {
     try (FileWriter fileWriter = new FileWriter(localUserNick + Protocol.userDataFileExtension)) {
       for (int i = 0; i < contactModel.getRowCount(); i++) {
-	fileWriter.write(contactModel.getValueAt(i, 0).toString() + Protocol.endOfLine);
-	fileWriter.write(contactModel.getValueAt(i, 1).toString() + Protocol.endOfLine);
+	fileWriter.write(contactModel.getValueAt(i, 0) + Protocol.endOfLine);
+	fileWriter.write(contactModel.getValueAt(i, 1) + Protocol.endOfLine);
       }
     } catch (IOException e) {
       e.printStackTrace();
@@ -335,11 +327,11 @@ public class Application {
   }
 
   public void closeConnection() {
-    if ((outcomingCommandListener != null) && (outcomingCommandListener.isListening())) {
+    if ((outcomingCommandListener != null) && outcomingCommandListener.isListening()) {
       outcomingCommandListener.stop();
       outcomingCommandListener.deleteObservers();
     }
-    if ((incomingCommandListener != null) && (incomingCommandListener.isListening())) {
+    if ((incomingCommandListener != null) && incomingCommandListener.isListening()) {
       incomingCommandListener.stop();
       incomingCommandListener.deleteObservers();
     }
@@ -347,7 +339,7 @@ public class Application {
   }
 
   public void sendMessage(String text) {
-    if (((outcomingConnection == null) ^ (incomingConnection == null)) || ((outcomingConnection.isClosed()) ^ (incomingConnection.isClosed())) || (((InetSocketAddress) caller.getRemoteAddress()).equals((InetSocketAddress) callListener.getListenAddress()))) {  
+    if (((outcomingConnection == null) ^ outcomingConnection.isClosed()) || ((incomingConnection == null) ^ incomingConnection.isClosed())) {  
       if (! text.endsWith(Protocol.endOfLine))
 	text = text + Protocol.endOfLine;
       try {

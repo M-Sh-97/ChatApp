@@ -36,6 +36,11 @@ class ContactTableModel extends DefaultTableModel {
     return editableColumns.get(column).booleanValue();
   }
   
+  @Override
+  public String getValueAt(int row, int column) {
+    return (String) super.getValueAt(row, column);
+  }
+  
   public void setEditableColumns(Vector<Boolean> columnEditingPermissions) {
     int q;
     if (columnEditingPermissions.size() > editableColumns.size())
