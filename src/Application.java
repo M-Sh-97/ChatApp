@@ -35,17 +35,13 @@ public class Application {
   private CommandListenerThread outcomingCommandListener,
 				incomingCommandListener;
   private final ServerConnection contactDataServer;
-  private static enum Status {BUSY, NO_CALL_LISTENING, OK, CLIENT_CONNECTED, REQUEST_FOR_CONNECT};
   private final Observer outcomingConnectionObserver,
 			 incomingConnectionObserver,
 			 incomingCallObserver;
   private final HistoryModel messageContainer;
-  private Status status;
   private final SimpleDateFormat dateFormat;
 
   public Application() {
-    status = Status.OK;
-
     try {
       Class.forName("com.mysql.jdbc.Driver");
     } catch (ClassNotFoundException e) {
@@ -64,6 +60,7 @@ public class Application {
 	    try {
 	      if (((NickCommand) arg).getBusyStatus()) {
 		closeConnection();
+		caller.setCallStatus(Caller.CallStatus.BUSY);
 		form.showBusyCalleeDialog();
 	      } else
 		outcomingConnection.sendNick(localUserNick, false);
@@ -73,11 +70,13 @@ public class Application {
 	  } else
 	    if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
 	      remoteUserNick = caller.getRemoteUserNick();
+	      caller.setCallStatus(Caller.CallStatus.OK);
 	      messageContainer.clear();
 	      form.blockDialogComponents(false);
 	    } else
 	      if (((Command) arg).getType() == Command.CommandType.REJECT) {
 		closeConnection();
+		caller.setCallStatus(Caller.CallStatus.REJECTED);
 		form.showRejectedCallDialog();
 	      } else
 		if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
@@ -125,9 +124,10 @@ public class Application {
       public void update(Observable o, Object arg) {
 	if (o instanceof CallListenerThread)
 	  try {
-	    if (status == Status.OK || ((status == Status.REQUEST_FOR_CONNECT) && ((InetSocketAddress) callListener.getRemoteAddress()).getAddress().getHostAddress().startsWith("127.0.0."))) {
+	    if (isBusy() && ! ((InetSocketAddress) callListener.getRemoteAddress()).getAddress().getHostAddress().startsWith("127.0.0."))
+	      ((Connection) arg).sendNick(localUserNick, true);
+	    else {
 	      incomingConnection = ((Connection) arg);
-	      status = Status.CLIENT_CONNECTED;
 	      incomingCommandListener = new CommandListenerThread(incomingConnection);
 	      incomingCommandListener.addObserver(incomingConnectionObserver);
 	      try {
@@ -136,8 +136,7 @@ public class Application {
 	      } catch (IllegalThreadStateException ex) {
 		closeConnection();
 	      }
-	    } else
-	      ((Connection) arg).sendNick(localUserNick, true);
+	    }
 	  } catch (IOException e) {
 	    e.printStackTrace();
 	  }
@@ -192,7 +191,7 @@ public class Application {
   }
   
   public boolean isBusy() {
-    return status != Status.OK;
+    return ! (((outcomingConnection == null) || outcomingConnection.isClosed()) && ((incomingConnection == null) || incomingConnection.isClosed()));
   }
   
   
@@ -203,7 +202,6 @@ public class Application {
       localUserNick = newNick;
     contactDataServer.setLocalNick(localUserNick);
     contactDataServer.connect();
-    status = Status.NO_CALL_LISTENING;
   }
 
   public void logOut() {
@@ -213,7 +211,6 @@ public class Application {
     clearContacts();
     localUserNick = null;
     remoteUserNick = null;
-    status = Status.OK;
   }
   
   public void startListeningForCalls() {
@@ -224,7 +221,6 @@ public class Application {
       callListener = new CallListener(localUserNick);
       callListenerThread = new CallListenerThread(callListener);
       callListenerThread.addObserver(incomingCallObserver);
-      status = Status.OK;
       callListenerThread.start();
     } catch (IOException e) {
       e.printStackTrace();
@@ -236,7 +232,6 @@ public class Application {
       if (contactDataServer.isNickOnline(localUserNick))
 	contactDataServer.goOffline();
     callListenerThread.stop();
-    status = Status.NO_CALL_LISTENING;
   }
   
   public void loadContactsFromServer() {
@@ -305,15 +300,15 @@ public class Application {
   public void makeOutcomingCall(String remoteIP) {
     caller = new Caller(localUserNick, remoteIP);
     try {
-      if (status == Status.OK) {
+      if (! isBusy()) {
 	outcomingConnection = caller.call();
-	status = Status.REQUEST_FOR_CONNECT;
 	outcomingCommandListener = new CommandListenerThread(outcomingConnection);
 	outcomingCommandListener.addObserver(outcomingConnectionObserver);
 	outcomingCommandListener.start();
       }
     } catch (IOException e) {
       closeConnection();
+      caller.setCallStatus(Caller.CallStatus.NOT_ACCESSIBLE);
       form.showConnectionFailDialog();
     }
   }
@@ -322,7 +317,6 @@ public class Application {
     try {
       incomingConnection.accept();
       remoteUserNick = callListener.getRemoteUserNick();
-      status = Status.BUSY;
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -354,7 +348,6 @@ public class Application {
       incomingCommandListener.stop();
       incomingCommandListener.deleteObservers();
     }
-    status = Status.OK;
   }
 
   public void sendMessage(String text) {

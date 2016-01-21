@@ -64,6 +64,10 @@ class Caller {
     this.remoteUserNick = remoteUserNick;
   }
   
+  public void setCallStatus(CallStatus cs) {
+    status = cs;
+  }
+  
   public void close() throws IOException {
     if (! s.isClosed())
       s.close();
