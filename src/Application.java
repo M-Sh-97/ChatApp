@@ -1,6 +1,11 @@
 import java.awt.EventQueue;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -11,7 +16,6 @@ import java.util.Date;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Vector;
-import javax.swing.JFrame;
 import javax.swing.table.TableModel;
 
 /**
@@ -21,7 +25,8 @@ public class Application {
   private MainForm form;
   private String localUserNick,
 		 remoteUserNick;
-  private final ContactTableModel contactModel;
+  private final ContactTableModel localContactModel,
+				  serverContactModel;
   private Connection incomingConnection,
 		     outcomingConnection;
   private Caller caller;
@@ -36,7 +41,7 @@ public class Application {
 			 incomingCallObserver;
   private final HistoryModel messageContainer;
   private Status status;
-  private final SimpleDateFormat dateFormatter;
+  private final SimpleDateFormat dateFormat;
 
   public Application() {
     status = Status.OK;
@@ -54,29 +59,38 @@ public class Application {
 	  if (((Command) arg).getType() == Command.CommandType.NICK) {
 	    caller.setRemoteUserNick(((NickCommand) arg).getNick());
 	    form.showRemoteUserNick(caller.getRemoteUserNick());
+	    form.showRemoteAddress(((InetSocketAddress) caller.getRemoteAddress()).getHostString());
 	    form.blockRemoteUserInfo(true);
 	    try {
 	      if (((NickCommand) arg).getBusyStatus()) {
 		closeConnection();
 		form.showBusyCalleeDialog();
 	      } else
-		outcomingConnection.sendNickHello(localUserNick);
+		outcomingConnection.sendNick(localUserNick, false);
 	    } catch (IOException e) {
 	      e.printStackTrace();
 	    }
-	  } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
-	    remoteUserNick = caller.getRemoteUserNick();
-	    messageContainer.clear();
-	    form.blockDialogComponents(false);
-	  } else if (((Command) arg).getType() == Command.CommandType.REJECT) {
-	    closeConnection();
-	    form.showRejectedCallDialog();
-	  } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
-	    addMessage(caller.getRemoteUserNick(), ((MessageCommand) arg).getMessage());
-	  } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
-	    closeConnection();
-	    form.showCallFinishDialog();
-	  }
+	  } else
+	    if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
+	      remoteUserNick = caller.getRemoteUserNick();
+	      messageContainer.clear();
+	      form.blockDialogComponents(false);
+	    } else
+	      if (((Command) arg).getType() == Command.CommandType.REJECT) {
+		closeConnection();
+		form.showRejectedCallDialog();
+	      } else
+		if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
+		  addMessage(remoteUserNick, ((MessageCommand) arg).getMessage());
+		} else
+		  if (((Command) arg).getType() == Command.CommandType.FILE) {
+		    addFileMessage(remoteUserNick, ((FileCommand) arg).getTitle());
+		    saveFile(((FileCommand) arg).getTitle(), ((FileCommand) arg).getRawData());
+		  } else
+		    if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
+		      closeConnection();
+		      form.showCallFinishDialog();
+		    }
 	}
       }
     };
@@ -88,12 +102,20 @@ public class Application {
 	  if (((Command) arg).getType() == Command.CommandType.NICK) {
 	      callListener.setRemoteUserNick(((NickCommand) arg).getNick());
 	      form.showIncomingCallDialog(callListener.getRemoteUserNick(), ((InetSocketAddress) callListener.getRemoteAddress()).getHostString());
-	  } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
-	    addMessage(callListener.getRemoteUserNick(), ((MessageCommand) arg).getMessage());
-	  } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
-	    closeConnection();
-	    form.showCallFinishDialog();
-	  }
+	  } else
+	    if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
+	      if ((outcomingConnection == null) || (outcomingConnection.isClosed()))
+		addMessage(remoteUserNick, ((MessageCommand) arg).getMessage());
+	    } else
+	      if (((Command) arg).getType() == Command.CommandType.FILE) {
+		if ((outcomingConnection == null) || (outcomingConnection.isClosed()))
+		  addFileMessage(remoteUserNick, ((FileCommand) arg).getTitle());
+		saveFile(((FileCommand) arg).getTitle(), ((FileCommand) arg).getRawData());
+	      } else
+		if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
+		  closeConnection();
+		  form.showCallFinishDialog();
+		}
 	}
       }
     };
@@ -110,12 +132,12 @@ public class Application {
 	      incomingCommandListener.addObserver(incomingConnectionObserver);
 	      try {
 		incomingCommandListener.start();
-		incomingConnection.sendNickHello(localUserNick);
+		incomingConnection.sendNick(localUserNick, false);
 	      } catch (IllegalThreadStateException ex) {
 		closeConnection();
 	      }
 	    } else
-	      ((Connection) arg).sendNickBusy(localUserNick);
+	      ((Connection) arg).sendNick(localUserNick, true);
 	  } catch (IOException e) {
 	    e.printStackTrace();
 	  }
@@ -128,11 +150,13 @@ public class Application {
     Vector<Boolean> permissions = new Vector<>(2);
     permissions.add(Boolean.FALSE);
     permissions.add(Boolean.FALSE);
-    contactModel = new ContactTableModel(header, 0, permissions);
+    
+    localContactModel = new ContactTableModel(header, 0, permissions);
+    serverContactModel = new ContactTableModel(header, 0, permissions);
 
     messageContainer = new HistoryModel();
     
-    dateFormatter = new SimpleDateFormat("d.MM.yyyy H:mm:ss");
+    dateFormat = new SimpleDateFormat("d.MM.yyyy H:mm:ss");
 
     contactDataServer = new ServerConnection(Protocol.serverAddress);
 
@@ -143,10 +167,13 @@ public class Application {
     return form;
   }
   
-  public TableModel getContactModel() {
-    return contactModel;
+  public TableModel getLocalContactModel() {
+    return localContactModel;
   }
   
+  public TableModel getServerContactModel() {
+    return serverContactModel;
+  }  
   
   public HistoryModel getMessageHistoryModel() {
     return messageContainer;
@@ -161,7 +188,7 @@ public class Application {
   }
   
   public DateFormat getDateFormat() {
-    return dateFormatter;
+    return dateFormat;
   }
   
   public boolean isBusy() {
@@ -214,20 +241,11 @@ public class Application {
   
   public void loadContactsFromServer() {
     if (contactDataServer.isConnected()) {
-      String[] nicknames = contactDataServer.getAllNicks();
-      Vector<Vector<String>> fln = (Vector<Vector<String>>) contactModel.getDataVector();
-      for (String nick: nicknames) {
+      for (String nick: contactDataServer.getAllNicks()) {
 	Vector<String> row = new Vector<>(2);
 	row.add(nick);
-	String nickIP = contactDataServer.getIpForNick(nick);
-	row.add(nickIP);
-	int lni = 0;
-	for (; lni < fln.size(); lni ++) {
-	  if (fln.get(lni).contains(nick) && fln.get(lni).contains(nickIP))
-	    break;
-	}
-	if (lni == fln.size())
-	  contactModel.addRow(row);
+	row.add(contactDataServer.getIpForNick(nick));
+	serverContactModel.addRow(row);
       }
     }
   }
@@ -241,7 +259,7 @@ public class Application {
 	String ip = bufferedReader.readLine();
 	tmp.add(nick);
 	tmp.add(ip);
-	contactModel.addRow(tmp);
+	localContactModel.addRow(tmp);
       }
     } catch (FileNotFoundException e) {
     } catch (IOException e) {
@@ -251,9 +269,9 @@ public class Application {
   
   public void saveContactsToFile() {
     try (FileWriter fileWriter = new FileWriter(localUserNick + Protocol.userDataFileExtension)) {
-      for (int i = 0; i < contactModel.getRowCount(); i++) {
-	fileWriter.write(contactModel.getValueAt(i, 0) + Protocol.endOfLine);
-	fileWriter.write(contactModel.getValueAt(i, 1) + Protocol.endOfLine);
+      for (int i = 0; i < localContactModel.getRowCount(); i++) {
+	fileWriter.write(localContactModel.getValueAt(i, 0) + Protocol.endOfLine);
+	fileWriter.write(localContactModel.getValueAt(i, 1) + Protocol.endOfLine);
       }
     } catch (IOException e) {
       e.printStackTrace();
@@ -264,23 +282,24 @@ public class Application {
     Vector<String> nc = new Vector<>(2);
     nc.add(newNick);
     nc.add(newIP);
-    Vector<Vector<String>> fln = (Vector<Vector<String>>) contactModel.getDataVector();
+    Vector<Vector<String>> fln = (Vector<Vector<String>>) localContactModel.getDataVector();
     int lni = 0;
     for (; lni < fln.size(); lni ++) {
       if (fln.get(lni).contains(newNick) && fln.get(lni).contains(newIP))
 	break;
     }
     if (lni == fln.size())
-      contactModel.addRow(nc);
+      localContactModel.addRow(nc);
   }
 
   public void removeContact(int pos) {
     if (pos >= 0)
-      contactModel.removeRow(pos);
+      localContactModel.removeRow(pos);
   }
 
   public void clearContacts() {
-    contactModel.clearDataVector();
+    localContactModel.clearDataVector();
+    serverContactModel.clearDataVector();
   }
   
   public void makeOutcomingCall(String remoteIP) {
@@ -339,19 +358,16 @@ public class Application {
   }
 
   public void sendMessage(String text) {
-    if (((outcomingConnection == null) ^ outcomingConnection.isClosed()) || ((incomingConnection == null) ^ incomingConnection.isClosed())) {  
-      if (! text.endsWith(Protocol.endOfLine))
-	text = text + Protocol.endOfLine;
-      try {
-	if (! ((outcomingConnection == null) || (outcomingConnection.isClosed()))) {
-	  outcomingConnection.sendMessage(text);
-	}
-	if (! ((incomingConnection == null) || (incomingConnection.isClosed()))) {
+    if (! text.endsWith(Protocol.endOfLine))
+      text = text + Protocol.endOfLine;
+    try {
+      if (! ((outcomingConnection == null) || outcomingConnection.isClosed()))
+	outcomingConnection.sendMessage(text);
+      else
+	if (! ((incomingConnection == null) || incomingConnection.isClosed()))
 	  incomingConnection.sendMessage(text);
-	}
-      } catch (IOException e) {
-	e.printStackTrace();
-      }
+    } catch (IOException e) {
+      e.printStackTrace();
     }
   }
   
@@ -363,21 +379,54 @@ public class Application {
     }
   }
   
+  public void addFileMessage(String nick, String fileName) {
+    StringBuilder fmt = new StringBuilder(Protocol.fileMessageLeadingLabel.length() + fileName.length() + 2);
+    fmt.append(Protocol.fileMessageLeadingLabel);
+    fmt.append(Protocol.space);
+    fmt.append(fileName);
+    fmt.append(Protocol.endOfLine);
+    addMessage(nick, fmt.toString());
+  }
+  
+  public void sendFile(File f) {
+    try (BufferedInputStream bfi = new BufferedInputStream(new FileInputStream(f))) {
+      Vector<Byte> pcrd = new Vector<>(1024);
+      int tv = bfi.read();
+      while (tv > -1) {
+	pcrd.addElement((Byte) (byte) tv);
+	tv = bfi.read();
+      }
+      tv = pcrd.size();
+      byte[] crd = new byte[tv];
+      for (int index = 0; index < tv; index ++)
+	crd[index] = pcrd.get(index).byteValue();
+      if (! ((outcomingConnection == null) || outcomingConnection.isClosed()))
+	outcomingConnection.sendFile(f.getName(), crd);
+      else
+	if (! ((incomingConnection == null) || incomingConnection.isClosed()))
+	  incomingConnection.sendFile(f.getName(), crd);
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+  
   public void saveMessageHistory(String messageAreaText) {
     if (messageContainer.getSize() > 0) {
       StringBuilder fn = new StringBuilder();
       fn.append(localUserNick);
-      fn.append(' ');
+      fn.append(Protocol.space);
       fn.append('-');
-      fn.append(' ');
+      fn.append(Protocol.space);
       fn.append(remoteUserNick);
       fn.append(',');
-      fn.append(' ');
-      fn.append(dateFormatter.format(messageContainer.getMessage(0).getDate()));
-      fn.append(' ');
+      fn.append(Protocol.space);
+      fn.append(dateFormat.format(messageContainer.getMessage(0).getDate()));
+      fn.append(Protocol.space);
       fn.append('-');
-      fn.append(' ');
-      fn.append(dateFormatter.format(messageContainer.getMessage(messageContainer.getSize() - 1).getDate()));
+      fn.append(Protocol.space);
+      fn.append(dateFormat.format(messageContainer.getMessage(messageContainer.getSize() - 1).getDate()));
       fn.append(Protocol.userDataFileExtension);
       for (short index = 0; index < fn.length(); index ++) {
 	if (fn.charAt(index) == ':')
@@ -391,14 +440,46 @@ public class Application {
       }
     }
   }
+  
+  public void saveFile(String name, byte[] rawData) {
+    File rf = new File(".\\" + name);
+    if (rf.exists()) {
+      StringBuilder mn = new StringBuilder(rf.getPath());
+      String p1 = "(";
+      String p2 = ")";
+      mn.append(Protocol.space);
+      mn.append(p1);
+      mn.append("1");
+      mn.append(p2);
+      short an = 1;
+      rf = new File(mn.toString());
+      while (rf.exists()) {
+	an ++;
+	mn.replace(mn.lastIndexOf(p1), mn.lastIndexOf(p2), String.valueOf(an));
+	rf = new File(mn.toString());
+      }
+    }
+    try {
+      rf.createNewFile();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    try (BufferedOutputStream bfo = new BufferedOutputStream(new FileOutputStream(rf))) {
+      bfo.write(rawData);
+      bfo.flush();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
 
   public static void main(String[] args) {
     Application chatApp = new Application();
     EventQueue.invokeLater(new Runnable() {
+      @Override
       public void run() {
-	chatApp.getForm().setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-	chatApp.getForm().setLocationByPlatform(true);
-	chatApp.getForm().show();
+	MainForm mf = chatApp.getForm();
+	mf.setLocationByPlatform(true);
+	mf.setVisible(true);
       }
     });
   }

@@ -6,6 +6,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -21,32 +22,38 @@ import javax.swing.event.ListSelectionListener;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Vector;
+import javax.swing.JFileChooser;
+import javax.swing.ListSelectionModel;
 
 /**
  * @author M-Sh-97
  */
 class MainForm extends JFrame {
-  private JButton buttonConnect,
-		  buttonDisconnect,
+  private JButton buttonConnecting,
+		  buttonDisconnecting,
 		  buttonContactAdding,
 		  buttonContactRemoving,
-		  buttonLogIn,
-		  buttonLogOut,
-		  buttonSend,
-		  buttonHistorySaving;
+		  buttonLoggingIn,
+		  buttonLoggingOut,
+		  buttonMessageSending,
+		  buttonFileSending;
   private JTextField textFieldLocalUser,
 		     textFieldRemoteUser,
 		     textFieldIP;
-  private JTextArea messageTypingSpace,
-		    messageHistory;
-  private JTable contactTable;
+  private JTextArea textAreaMessageTyping,
+		    textAreaMessageHistory;
+  private JTable tableLocalContact,
+		 tableServerContact;
   private JLabel labelLocalUser,
 		 labelRemoteUser,
-		 labelIP;
-  private JScrollPane scrollMessageHistory,
-		      scrollContactTable,
-		      scrollMessageTypingSpace;
-  private HistoryModel messageContainer;
+		 labelIP,
+		 labelLocalContact,
+		 labelServerContact;
+  private JScrollPane scrollMessageTypingSpace,
+		      scrollTextAreaMessageHistory,
+		      scrollTableLocalContact,
+		      scrollTableServerContact;
+  private JFileChooser fileChooser;
   private final Observer historyViewObserver;
   private Application logicModel;
   
@@ -54,86 +61,105 @@ class MainForm extends JFrame {
     super();
     
     logicModel = logic;
-    messageContainer = logicModel.getMessageHistoryModel();
         
     labelLocalUser = new JLabel();
-    textFieldLocalUser = new JTextField();
-    buttonLogIn = new JButton();
     labelRemoteUser = new JLabel();
-    textFieldRemoteUser = new JTextField();
     labelIP = new JLabel();
-    textFieldIP = new JTextField();
-    buttonConnect = new JButton();
-    buttonDisconnect = new JButton();
-    scrollContactTable = new JScrollPane();
-    contactTable = new JTable();
-    scrollMessageTypingSpace = new JScrollPane();
-    messageTypingSpace = new JTextArea();
-    buttonSend = new JButton();
-    buttonLogOut = new JButton();
+    labelLocalContact = new JLabel();
+    labelServerContact = new JLabel();
+    buttonLoggingIn = new JButton();
+    buttonLoggingOut = new JButton();
+    buttonConnecting = new JButton();
+    buttonDisconnecting = new JButton();    
+    buttonMessageSending = new JButton();
+    buttonFileSending = new JButton();
     buttonContactAdding = new JButton();
-    scrollMessageHistory = new JScrollPane();
-    messageHistory = new JTextArea();
     buttonContactRemoving = new JButton();
-    buttonHistorySaving = new JButton();
+    textFieldLocalUser = new JTextField();
+    textFieldRemoteUser = new JTextField();
+    textFieldIP = new JTextField();
+    textAreaMessageTyping = new JTextArea();
+    textAreaMessageHistory = new JTextArea();
+    tableLocalContact = new JTable();
+    tableServerContact = new JTable();
+    scrollMessageTypingSpace = new JScrollPane();
+    scrollTextAreaMessageHistory = new JScrollPane();
+    scrollTableLocalContact = new JScrollPane();
+    scrollTableServerContact = new JScrollPane();
 
     labelLocalUser.setHorizontalAlignment(JLabel.CENTER);
     labelLocalUser.setText("Локальный пользователь");
-
-    buttonLogIn.setText("Войти");
+    labelLocalUser.setLabelFor(textFieldLocalUser);
 
     labelRemoteUser.setText("Удалённый пользователь");
+    labelRemoteUser.setLabelFor(textFieldRemoteUser);
 
     labelIP.setText("Удалённый IP-адрес");
+    labelIP.setLabelFor(textFieldIP);
+    
+    labelLocalContact.setHorizontalAlignment(JLabel.CENTER);
+    labelLocalContact.setText("Сохранённые контакты");
+    labelLocalContact.setLabelFor(tableLocalContact);
+    
+    labelServerContact.setHorizontalAlignment(JLabel.CENTER);
+    labelServerContact.setText("Контакты на сервере");
+    labelServerContact.setLabelFor(tableServerContact);
+    
+    buttonLoggingIn.setText("Войти");
 
-    buttonConnect.setText("Подсоединиться");
+    buttonLoggingOut.setText("Выйти");
 
-    buttonDisconnect.setText("Отсоединиться");
+    buttonConnecting.setText("Подсоединиться");
 
-    scrollContactTable.setViewportView(contactTable);
+    buttonDisconnecting.setText("Отсоединиться");
 
-    scrollMessageTypingSpace.setPreferredSize(new Dimension(200, 60));
-    scrollMessageTypingSpace.setViewportView(messageTypingSpace);
+    buttonMessageSending.setText("Отправить сообщение");
 
-    buttonSend.setText("Отправить");
-
-    buttonLogOut.setText("Выйти");
+    buttonFileSending.setText("Отправить файл");
 
     buttonContactAdding.setText("Добавить в список");
 
-    scrollMessageHistory.setPreferredSize(new Dimension(200, 200));
-    scrollMessageHistory.setViewportView(messageHistory);
-
     buttonContactRemoving.setText("Убрать из списка");
-
-    buttonHistorySaving.setText("Сохранить текст переписки");
     
     textFieldRemoteUser.setEditable(false);
     
     Font maf = new Font("Roboto", 0, 15);
     
-    messageHistory.setEditable(false);
-    messageHistory.setFont(maf);
-    messageHistory.setLineWrap(true);
-    messageHistory.setWrapStyleWord(true);
+    textAreaMessageHistory.setEditable(false);
+    textAreaMessageHistory.setFont(maf);
+    textAreaMessageHistory.setLineWrap(true);
+    textAreaMessageHistory.setWrapStyleWord(true);
     
-    messageTypingSpace.setFont(maf);
-    messageTypingSpace.setLineWrap(true);
-    messageTypingSpace.setWrapStyleWord(true);
+    textAreaMessageTyping.setFont(maf);
+    textAreaMessageTyping.setLineWrap(true);
+    textAreaMessageTyping.setWrapStyleWord(true);
     
-    contactTable.setModel(logicModel.getContactModel());
+    tableLocalContact.setModel(logicModel.getLocalContactModel());
+    tableLocalContact.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+    
+    tableServerContact.setModel(logicModel.getServerContactModel());
+    tableLocalContact.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+    
+    scrollMessageTypingSpace.setPreferredSize(new Dimension(200, 60));
+    scrollMessageTypingSpace.setViewportView(textAreaMessageTyping);
+
+    scrollTextAreaMessageHistory.setPreferredSize(new Dimension(200, 200));
+    scrollTextAreaMessageHistory.setViewportView(textAreaMessageHistory);
+
+    scrollTableLocalContact.setViewportView(tableLocalContact);
+    
+    scrollTableServerContact.setViewportView(tableServerContact);
     
     blockDialogComponents(true);
     blockLocalUserInfo(false);
 
     GroupLayout layout = new GroupLayout(getContentPane());
     getContentPane().setLayout(layout);
-    layout.setHorizontalGroup(
-      layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+    layout.setHorizontalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
       .addGroup(layout.createSequentialGroup()
 	.addContainerGap()
 	  .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-	    .addComponent(scrollMessageHistory, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
+	    .addComponent(scrollTextAreaMessageHistory, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
 	    .addComponent(scrollMessageTypingSpace, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
 	    .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
 	      .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
@@ -141,8 +167,8 @@ class MainForm extends JFrame {
 		.addComponent(labelLocalUser, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
 	      .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
 	      .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-		.addComponent(buttonLogOut, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-		.addComponent(buttonLogIn, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+		.addComponent(buttonLoggingOut, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+		.addComponent(buttonLoggingIn, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
 	      .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
 	      .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
 		.addComponent(labelIP, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -155,93 +181,109 @@ class MainForm extends JFrame {
 		.addComponent(textFieldRemoteUser, GroupLayout.DEFAULT_SIZE, 130, Short.MAX_VALUE))
 	      .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
 	      .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-		.addComponent(buttonDisconnect, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-		.addComponent(buttonConnect, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-	  .addComponent(scrollContactTable, GroupLayout.DEFAULT_SIZE, 230, Short.MAX_VALUE)
+		.addComponent(buttonDisconnecting, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+		.addComponent(buttonConnecting, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+	  .addComponent(scrollTableLocalContact, GroupLayout.PREFERRED_SIZE, 230, Short.MAX_VALUE)
           .addComponent(buttonContactRemoving, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+          .addComponent(buttonMessageSending, GroupLayout.Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+          .addComponent(buttonFileSending, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+          .addComponent(scrollTableServerContact, GroupLayout.Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 230, Short.MAX_VALUE)
           .addComponent(buttonContactAdding, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-          .addComponent(buttonSend, GroupLayout.Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-          .addComponent(buttonHistorySaving, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+          .addComponent(labelServerContact, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+          .addComponent(labelLocalContact, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         .addContainerGap())
     );
-    layout.setVerticalGroup(
-      layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+    layout.setVerticalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
       .addGroup(layout.createSequentialGroup()
         .addContainerGap()
         .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-          .addComponent(buttonLogIn)
-          .addComponent(textFieldRemoteUser)
-          .addComponent(buttonConnect)
+          .addComponent(buttonLoggingIn)
+          .addComponent(textFieldRemoteUser, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+          .addComponent(buttonConnecting)
           .addComponent(labelLocalUser)
           .addComponent(labelRemoteUser))
         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
         .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
           .addComponent(textFieldLocalUser, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-          .addComponent(buttonLogOut)
+          .addComponent(buttonLoggingOut)
           .addComponent(labelIP)
-          .addComponent(textFieldIP)
-          .addComponent(buttonDisconnect))
+          .addComponent(textFieldIP, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+          .addComponent(buttonDisconnecting))
         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
         .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
           .addGroup(layout.createSequentialGroup()
             .addComponent(buttonContactAdding)
             .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-            .addComponent(scrollContactTable, GroupLayout.DEFAULT_SIZE, 180, Short.MAX_VALUE)
+	    .addComponent(labelLocalContact)
             .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-            .addComponent(buttonContactRemoving))
-          .addComponent(scrollMessageHistory))
+            .addComponent(scrollTableLocalContact, GroupLayout.DEFAULT_SIZE, 180, Short.MAX_VALUE)
+            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(buttonContactRemoving)
+	    .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+	    .addComponent(labelServerContact)
+            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(scrollTableServerContact, GroupLayout.DEFAULT_SIZE, 180, Short.MAX_VALUE))
+          .addComponent(scrollTextAreaMessageHistory))
         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
         .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
           .addGroup(layout.createSequentialGroup()
-            .addComponent(buttonHistorySaving)
+            .addComponent(buttonFileSending)
             .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-            .addComponent(buttonSend))
+            .addComponent(buttonMessageSending))
           .addComponent(scrollMessageTypingSpace, GroupLayout.PREFERRED_SIZE, 60, GroupLayout.PREFERRED_SIZE))
         .addContainerGap())
     );
     pack();
     
-    buttonLogIn.setMnemonic(KeyEvent.VK_J);
-    buttonLogIn.setDisplayedMnemonicIndex(1);
-    buttonLogOut.setMnemonic(KeyEvent.VK_S);
-    buttonLogOut.setDisplayedMnemonicIndex(1);
-    buttonConnect.setMnemonic(KeyEvent.VK_L);
-    buttonConnect.setDisplayedMnemonicIndex(2);
-    buttonDisconnect.setMnemonic(KeyEvent.VK_N);
-    buttonDisconnect.setDisplayedMnemonicIndex(1);
-    buttonSend.setMnemonic(KeyEvent.VK_G);
-    buttonSend.setDisplayedMnemonicIndex(2);
+    buttonLoggingIn.setMnemonic(KeyEvent.VK_J);
+    buttonLoggingIn.setDisplayedMnemonicIndex(1);
+    buttonLoggingOut.setMnemonic(KeyEvent.VK_S);
+    buttonLoggingOut.setDisplayedMnemonicIndex(1);
+    buttonConnecting.setMnemonic(KeyEvent.VK_L);
+    buttonConnecting.setDisplayedMnemonicIndex(2);
+    buttonDisconnecting.setMnemonic(KeyEvent.VK_N);
+    buttonDisconnecting.setDisplayedMnemonicIndex(1);
+    buttonMessageSending.setMnemonic(KeyEvent.VK_C);
+    buttonMessageSending.setDisplayedMnemonicIndex(10);
     buttonContactAdding.setMnemonic(KeyEvent.VK_COMMA);
     buttonContactAdding.setDisplayedMnemonicIndex(2);
     buttonContactRemoving.setMnemonic(KeyEvent.VK_H);
     buttonContactRemoving.setDisplayedMnemonicIndex(2);
-    buttonHistorySaving.setMnemonic(KeyEvent.VK_C);
-    buttonHistorySaving.setDisplayedMnemonicIndex(0);
+    buttonFileSending.setMnemonic(KeyEvent.VK_A);
+    buttonFileSending.setDisplayedMnemonicIndex(10);
+    
+    fileChooser = new JFileChooser(".\\");
+    fileChooser.setDialogType(JFileChooser.CUSTOM_DIALOG);
+    fileChooser.setDialogTitle("Отправка файла");
+    fileChooser.setApproveButtonText("Подтвердить выбор");
+    fileChooser.setApproveButtonMnemonic(KeyEvent.VK_D);
     
     StringBuilder sm = new StringBuilder(Protocol.programName.length() + Protocol.version.length() + 1);
     sm.append(Protocol.programName);
-    sm.append(' ');
+    sm.append(Protocol.space);
     sm.append(Protocol.version);
     setTitle(sm.toString());
+    setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
     setSize(750, 500);
 
     historyViewObserver = new Observer() {
       @Override
       public void update(Observable o, Object arg) {
-	if (((Vector<String>) arg).isEmpty()) {
-	  messageHistory.setText(null);
-	} else {
-	  if (! messageHistory.getText().isEmpty()) {
-	    messageHistory.append(Protocol.endOfLine);
+	if (o instanceof HistoryModel)
+	  if (((Vector<String>) arg).isEmpty()) {
+	    textAreaMessageHistory.setText(null);
+	  } else {
+	    if (! textAreaMessageHistory.getText().isEmpty()) {
+	      textAreaMessageHistory.append(Protocol.endOfLine);
+	    }
+	    HistoryModel.Message msgData = ((HistoryModel) o).getMessage(((HistoryModel) o).getSize() - 1);
+	    textAreaMessageHistory.append(msgData.getNick() + ". " + logicModel.getDateFormat().format(msgData.getDate()) + "." + Protocol.endOfLine + msgData.getText());
 	  }
-	  HistoryModel.Message msgData = messageContainer.getMessage(messageContainer.getSize() - 1);
-	  messageHistory.append(msgData.getNick() + ". " + logicModel.getDateFormat().format(msgData.getDate()) + "." + Protocol.endOfLine + msgData.getText());
-	}
       }
     };
-    messageContainer.addObserver(historyViewObserver);
+    logicModel.getMessageHistoryModel().addObserver(historyViewObserver);
 
-    buttonConnect.addActionListener(new ActionListener() {
+    buttonConnecting.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
 	String fIP = textFieldIP.getText();
@@ -249,32 +291,40 @@ class MainForm extends JFrame {
       }
     });
 
-    buttonDisconnect.addActionListener(new ActionListener() {
+    buttonDisconnecting.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
 	blockDialogComponents(true);
 	logicModel.finishCall();
-	try {
-	  Thread.sleep(100);
-	} catch (InterruptedException ex) {}
-	logicModel.closeConnection();
+	logicModel.saveMessageHistory(textAreaMessageHistory.getText());
 	blockRemoteUserInfo(false);
       }
     });
 
-    buttonSend.addActionListener(new ActionListener() {
+    buttonMessageSending.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-	String text = messageTypingSpace.getText();
+	String text = textAreaMessageTyping.getText();
 	if (! text.isEmpty()) {
 	  logicModel.sendMessage(text);
 	  logicModel.addMessage(logicModel.getLocalUserNick(), text);
-	  messageTypingSpace.setText(null);
+	  textAreaMessageTyping.setText(null);
+	}
+      }
+    });
+    
+    buttonFileSending.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+	File fp = showFileChoiceDialog();
+	if (fp != null) {
+	  logicModel.sendFile(fp);
+	  logicModel.addMessage(logicModel.getLocalUserNick(), Protocol.fileMessageLeadingLabel + fp.getName());
 	}
       }
     });
 
-    buttonLogIn.addActionListener(new ActionListener() {
+    buttonLoggingIn.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
 	String flun = textFieldLocalUser.getText();
@@ -289,7 +339,7 @@ class MainForm extends JFrame {
       }
     });
 
-    buttonLogOut.addActionListener(new ActionListener() {
+    buttonLoggingOut.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
 	logicModel.finishListeningForCalls();
@@ -321,34 +371,44 @@ class MainForm extends JFrame {
     buttonContactRemoving.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-	int sr = contactTable.getSelectedRow();
+	int sr = tableLocalContact.getSelectedRow();
 	if (sr >= 0) {
-	  logicModel.removeContact(sr);
-	  contactTable.clearSelection();
+	  for (; sr < tableLocalContact.getSelectedRowCount() + sr; sr ++)
+	    logicModel.removeContact(sr);
+	  tableLocalContact.clearSelection();
+	}
+      }
+    });
+
+    tableLocalContact.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+      @Override
+      public void valueChanged(ListSelectionEvent e) {
+	if (tableLocalContact.getSelectedRows().length == 1) {
+	  if (tableServerContact.getSelectedRows().length > 0)
+	    tableServerContact.clearSelection();
+	  ContactTableModel tm = (ContactTableModel) tableLocalContact.getModel();
+	  int sr = tableLocalContact.getSelectedRow();
+	  textFieldRemoteUser.setText(tm.getValueAt(sr, 0));
+	  textFieldIP.setText(tm.getValueAt(sr, 1));
 	}
       }
     });
     
-    buttonHistorySaving.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-	logicModel.saveMessageHistory(messageHistory.getText());
-      }
-    });
-
-    contactTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+    tableServerContact.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
       @Override
       public void valueChanged(ListSelectionEvent e) {
-	if (contactTable.getSelectedRow() >= 0) {
-	  String nick = contactTable.getModel().getValueAt(contactTable.getSelectedRow(), 0).toString();
-	  String ip = contactTable.getModel().getValueAt(contactTable.getSelectedRow(), 1).toString();
-	  textFieldRemoteUser.setText(nick);
-	  textFieldIP.setText(ip);
+	if (tableServerContact.getSelectedRows().length == 1) {
+	  if (tableLocalContact.getSelectedRows().length > 0)
+	    tableLocalContact.clearSelection();
+	  ContactTableModel tm = (ContactTableModel) tableServerContact.getModel();
+	  int sr = tableServerContact.getSelectedRow();
+	  textFieldRemoteUser.setText(tm.getValueAt(sr, 0));
+	  textFieldIP.setText(tm.getValueAt(sr, 1));
 	}
       }
     });
 
-    contactTable.addKeyListener(new KeyAdapter() {
+    tableLocalContact.addKeyListener(new KeyAdapter() {
       @Override
       public void keyPressed(KeyEvent e) {
 	if (e.getKeyCode() == 127) // "Delete"
@@ -360,7 +420,7 @@ class MainForm extends JFrame {
       @Override
       public void keyPressed(KeyEvent e) {
 	if (e.getKeyCode() == 10) // "Enter"
-	  buttonLogIn.doClick();
+	  buttonLoggingIn.doClick();
       }
     });
 
@@ -368,33 +428,30 @@ class MainForm extends JFrame {
       @Override
       public void keyPressed(KeyEvent e) {
 	if (e.getKeyCode() == 10) // "Enter"
-	  buttonConnect.doClick();
+	  buttonConnecting.doClick();
       }
       
       @Override
       public void keyTyped(KeyEvent e) {
-	if (! textFieldRemoteUser.getText().isEmpty())
-	  if (e.getKeyChar() != 10) // "Enter"
+	if (! textFieldRemoteUser.getText().isEmpty()) {
+	  int cc = e.getKeyChar();
+	  if (! ((cc == KeyEvent.CHAR_UNDEFINED) || (cc == 10))) // "Enter"
 	    textFieldRemoteUser.setText(null);
+	}
       }
     });
   }
 
-  public void showIncomingCallDialog(String nick, String IP) {
+  public void showIncomingCallDialog(String nick, String address) {
     Object[] option = {"Принять", "Отклонить"};
-    if (JOptionPane.showOptionDialog(this, "Пользователь " + nick + " с адреса " + IP + " желает переписываться с Вами.", "Входящий запрос", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]) == 0) {
+    if (JOptionPane.showOptionDialog(this, "Пользователь " + nick + " с адреса " + address + " желает переписываться с Вами.", "Входящий запрос", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]) == 0) {
       logicModel.acceptIncomingCall();
       textFieldRemoteUser.setText(nick);
-      textFieldIP.setText(IP);
+      textFieldIP.setText(address);
       blockRemoteUserInfo(true);
       blockDialogComponents(false);
-    } else {
+    } else
       logicModel.rejectIncomingCall();
-      try {
-	Thread.sleep(100);
-      } catch (InterruptedException ex) {}
-      logicModel.closeConnection();
-    }
   }
 
   public void showCallFinishDialog() {
@@ -422,43 +479,41 @@ class MainForm extends JFrame {
     Object[] option = {"Да", "Нет"};
     if (JOptionPane.showOptionDialog(this, "Вы действительно хотите выйти?", "Выход из программы", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]) == 0) {
       if (logicModel.getLocalUserNick() != null)
-	buttonLogOut.doClick();
-      hide();
+	buttonLoggingOut.doClick();
+      setVisible(false);
       dispose();
       System.exit(0);
     }
   }
+  
+  public File showFileChoiceDialog() {
+    if (fileChooser.showDialog(this, null) == JFileChooser.APPROVE_OPTION)
+      return fileChooser.getSelectedFile();
+    else
+      return null;
+  }
 
   public final void blockDialogComponents(boolean blockingFlag) {
-    buttonDisconnect.setEnabled(! blockingFlag);
-    messageTypingSpace.setEnabled(! blockingFlag);
-    buttonSend.setEnabled(! blockingFlag);
-    messageHistory.setEnabled(! blockingFlag);
-    buttonLogOut.setEnabled(blockingFlag);
-    buttonConnect.setEnabled(blockingFlag);
-    contactTable.setEnabled(blockingFlag);
-    if (blockingFlag) {
-      if (messageContainer.getSize() > 0)
-	buttonHistorySaving.setEnabled(true);
-    }
-    else
-      if (buttonHistorySaving.isEnabled())
-	buttonHistorySaving.setEnabled(false);
+    buttonDisconnecting.setEnabled(! blockingFlag);
+    textAreaMessageTyping.setEnabled(! blockingFlag);
+    buttonMessageSending.setEnabled(! blockingFlag);
+    buttonFileSending.setEnabled(! blockingFlag);
+    textAreaMessageHistory.setEnabled(! blockingFlag);
+    buttonLoggingOut.setEnabled(blockingFlag);
+    buttonConnecting.setEnabled(blockingFlag);
+    tableLocalContact.setEnabled(blockingFlag);
   }
 
   public final void blockLocalUserInfo(boolean blockingFlag) {
-    buttonConnect.setEnabled(blockingFlag);
+    buttonConnecting.setEnabled(blockingFlag);
     buttonContactAdding.setEnabled(blockingFlag);
     buttonContactRemoving.setEnabled(blockingFlag);
     textFieldRemoteUser.setEnabled(blockingFlag);
     textFieldIP.setEnabled(blockingFlag);
-    contactTable.setEnabled(blockingFlag);
+    tableLocalContact.setEnabled(blockingFlag);
     textFieldLocalUser.setEnabled(! blockingFlag);
-    buttonLogIn.setEnabled(! blockingFlag);
-    buttonLogOut.setEnabled(blockingFlag);
-    if (! blockingFlag)
-      if (buttonHistorySaving.isEnabled())
-	buttonHistorySaving.setEnabled(false);
+    buttonLoggingIn.setEnabled(! blockingFlag);
+    buttonLoggingOut.setEnabled(blockingFlag);
   }
 
   public final void blockRemoteUserInfo(boolean blockingFlag) {
@@ -468,5 +523,9 @@ class MainForm extends JFrame {
 
   public void showRemoteUserNick(String nick) {
     textFieldRemoteUser.setText(nick);
+  }
+  
+  public void showRemoteAddress(String address) {
+    textFieldIP.setText(address);
   }
 }
