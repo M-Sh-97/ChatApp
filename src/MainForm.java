@@ -319,7 +319,7 @@ class MainForm extends JFrame {
 	File fp = showFileChoiceDialog();
 	if (fp != null) {
 	  logicModel.sendFile(fp);
-	  logicModel.addMessage(logicModel.getLocalUserNick(), Protocol.fileMessageLeadingLabel + fp.getName());
+	  logicModel.addFileMessage(logicModel.getLocalUserNick(), fp.getName());
 	}
       }
     });

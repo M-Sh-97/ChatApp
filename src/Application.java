@@ -438,17 +438,16 @@ public class Application {
     File rf = new File(".\\" + name);
     if (rf.exists()) {
       StringBuilder mn = new StringBuilder(rf.getPath());
-      String p1 = "(";
-      String p2 = ")";
+      short obf = (short) (mn.length() + 2);
       mn.append(Protocol.space);
-      mn.append(p1);
+      mn.append("(");
       mn.append("1");
-      mn.append(p2);
+      mn.append(")");
       short an = 1;
       rf = new File(mn.toString());
       while (rf.exists()) {
 	an ++;
-	mn.replace(mn.lastIndexOf(p1), mn.lastIndexOf(p2), String.valueOf(an));
+	mn.replace(obf, mn.length() - 1, String.valueOf(an));
 	rf = new File(mn.toString());
       }
     }
