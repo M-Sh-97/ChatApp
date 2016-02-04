@@ -40,6 +40,7 @@ public class Application {
 			 incomingCallObserver;
   private final HistoryModel messageContainer;
   private final SimpleDateFormat dateFormat;
+  private final File contactFolder, historyFolder, fileFolder;
 
   public Application() {
     try {
@@ -158,6 +159,16 @@ public class Application {
     dateFormat = new SimpleDateFormat("d.MM.yyyy H:mm:ss");
 
     contactDataServer = new ServerConnection(Protocol.serverAddress);
+    
+    contactFolder = new File(".\\Контакты");
+    if (! contactFolder.exists())
+      contactFolder.mkdir();
+    historyFolder = new File(".\\Переписки");
+    if (! historyFolder.exists())
+      historyFolder.mkdir();
+    fileFolder = new File(".\\Файлы");
+    if (! fileFolder.exists())
+      fileFolder.mkdir();
 
     form = new MainForm(this);
   }
@@ -247,7 +258,12 @@ public class Application {
   
   public void loadContactsFromFile() {
     clearContacts();
-    try (BufferedReader bufferedReader = new BufferedReader(new FileReader(localUserNick + Protocol.userDataFileExtension))) {
+    StringBuilder fn = new StringBuilder();
+    fn.append(contactFolder.getPath());
+    fn.append('\\');
+    fn.append(localUserNick);
+    fn.append(Protocol.userDataFileExtension);
+    try (BufferedReader bufferedReader = new BufferedReader(new FileReader(fn.toString()))) {
       while (bufferedReader.ready()) {
 	Vector<String> tmp = new Vector<>();
 	String nick = bufferedReader.readLine();
@@ -263,7 +279,12 @@ public class Application {
   }
   
   public void saveContactsToFile() {
-    try (FileWriter fileWriter = new FileWriter(localUserNick + Protocol.userDataFileExtension)) {
+    StringBuilder fn = new StringBuilder();
+    fn.append(contactFolder.getPath());
+    fn.append('\\');
+    fn.append(localUserNick);
+    fn.append(Protocol.userDataFileExtension);
+    try (FileWriter fileWriter = new FileWriter(fn.toString())) {
       for (int i = 0; i < localContactModel.getRowCount(); i++) {
 	fileWriter.write(localContactModel.getValueAt(i, 0) + Protocol.endOfLine);
 	fileWriter.write(localContactModel.getValueAt(i, 1) + Protocol.endOfLine);
@@ -408,6 +429,8 @@ public class Application {
   public void saveMessageHistory(String messageAreaText) {
     if (messageContainer.getSize() > 0) {
       StringBuilder fn = new StringBuilder();
+      fn.append(historyFolder.getPath());
+      fn.append('\\');
       fn.append(localUserNick);
       fn.append(Protocol.space);
       fn.append('-');
@@ -435,19 +458,24 @@ public class Application {
   }
   
   public void saveFile(String name, byte[] rawData) {
-    File rf = new File(".\\" + name);
+    StringBuilder mn = new StringBuilder();
+    mn.append(fileFolder.getPath());
+    mn.append('\\');
+    mn.append(name);
+    File rf = new File(mn.toString());
     if (rf.exists()) {
-      StringBuilder mn = new StringBuilder(rf.getPath());
-      short obf = (short) (mn.length() + 2);
-      mn.append(Protocol.space);
-      mn.append("(");
-      mn.append("1");
-      mn.append(")");
+      short febd = (short) mn.lastIndexOf(".");
+      if (febd >= 0)
+	febd = (short) (mn.length() - febd);
+      else
+	febd = 0;
+      short obf = (short) (mn.length() - febd + 1);
+      mn.insert(obf - 1, new char[] {' ', '(', '1', ')'});
       short an = 1;
       rf = new File(mn.toString());
       while (rf.exists()) {
 	an ++;
-	mn.replace(obf, mn.length() - 1, String.valueOf(an));
+	mn.replace(obf + 1, mn.length() - febd - 1, String.valueOf(an));
 	rf = new File(mn.toString());
       }
     }

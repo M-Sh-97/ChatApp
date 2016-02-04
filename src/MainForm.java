@@ -54,6 +54,7 @@ class MainForm extends JFrame {
 		      scrollTableLocalContact,
 		      scrollTableServerContact;
   private JFileChooser fileChooser;
+  private final File defaultFileLocation;
   private final Observer historyViewObserver;
   private Application logicModel;
   
@@ -149,9 +150,6 @@ class MainForm extends JFrame {
     scrollTableLocalContact.setViewportView(tableLocalContact);
     
     scrollTableServerContact.setViewportView(tableServerContact);
-    
-    blockDialogComponents(true);
-    blockLocalUserInfo(false);
 
     GroupLayout layout = new GroupLayout(getContentPane());
     getContentPane().setLayout(layout);
@@ -252,11 +250,15 @@ class MainForm extends JFrame {
     buttonFileSending.setMnemonic(KeyEvent.VK_A);
     buttonFileSending.setDisplayedMnemonicIndex(10);
     
-    fileChooser = new JFileChooser(".\\");
+    defaultFileLocation = new File(".");
+    fileChooser = new JFileChooser(defaultFileLocation.getPath());
     fileChooser.setDialogType(JFileChooser.CUSTOM_DIALOG);
     fileChooser.setDialogTitle("Отправка файла");
     fileChooser.setApproveButtonText("Подтвердить выбор");
     fileChooser.setApproveButtonMnemonic(KeyEvent.VK_D);
+    
+    blockDialogComponents(true);
+    blockLocalUserInfo(false);
     
     StringBuilder sm = new StringBuilder(Protocol.programName.length() + Protocol.version.length() + 1);
     sm.append(Protocol.programName);
@@ -487,13 +489,14 @@ class MainForm extends JFrame {
   }
   
   public File showFileChoiceDialog() {
+    File result = null;
     if (fileChooser.showDialog(this, null) == JFileChooser.APPROVE_OPTION)
-      return fileChooser.getSelectedFile();
-    else
-      return null;
+      result = fileChooser.getSelectedFile();
+    fileChooser.setSelectedFile(null);
+    return result;
   }
 
-  public final void blockDialogComponents(boolean blockingFlag) {
+  public void blockDialogComponents(boolean blockingFlag) {
     buttonDisconnecting.setEnabled(! blockingFlag);
     textAreaMessageTyping.setEnabled(! blockingFlag);
     buttonMessageSending.setEnabled(! blockingFlag);
@@ -504,7 +507,7 @@ class MainForm extends JFrame {
     tableLocalContact.setEnabled(blockingFlag);
   }
 
-  public final void blockLocalUserInfo(boolean blockingFlag) {
+  public void blockLocalUserInfo(boolean blockingFlag) {
     buttonConnecting.setEnabled(blockingFlag);
     buttonContactAdding.setEnabled(blockingFlag);
     buttonContactRemoving.setEnabled(blockingFlag);
@@ -514,9 +517,11 @@ class MainForm extends JFrame {
     textFieldLocalUser.setEnabled(! blockingFlag);
     buttonLoggingIn.setEnabled(! blockingFlag);
     buttonLoggingOut.setEnabled(blockingFlag);
+    if (blockingFlag)
+      fileChooser.setCurrentDirectory(defaultFileLocation);
   }
 
-  public final void blockRemoteUserInfo(boolean blockingFlag) {
+  public void blockRemoteUserInfo(boolean blockingFlag) {
     textFieldRemoteUser.setEnabled(! blockingFlag);
     textFieldIP.setEnabled(! blockingFlag);
   }
