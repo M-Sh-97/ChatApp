@@ -465,7 +465,7 @@ public class Application {
     File rf = new File(mn.toString());
     if (rf.exists()) {
       short febd = (short) mn.lastIndexOf(".");
-      if (febd >= 0)
+      if ((febd >= 0) && (mn.indexOf(Protocol.space, febd + 1) < febd))
 	febd = (short) (mn.length() - febd);
       else
 	febd = 0;
